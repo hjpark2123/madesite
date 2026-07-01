@@ -317,11 +317,9 @@
 </div>
 
 <script>
-  // ── JSONbin 설정 ──────────────────────────────────────
-  const JSONBIN_API_KEY = '$2a$10$7DtI42mV7tlmwe7BBtCmKOm8iKZhl8VbGjnTCvGSIyUhPG0FJuG2i';
-  const JSONBIN_BIN_ID  = '6a44d698da38895dfe1ab108';
-  const JSONBIN_URL     = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
-  // ─────────────────────────────────────────────────────
+  // ── Firebase 설정 ──────────────────────────────────────
+  const FIREBASE_URL = 'https://checkingword-8cf0d-default-rtdb.firebaseio.com/data.json';
+  // ──────────────────────────────────────────────────────
 
   const TITLE_STORAGE_KEY = 'spacing-check-current-title';
   let currentTitle = '';
@@ -336,10 +334,10 @@
       el.style.cssText = 'position:fixed;bottom:16px;right:16px;padding:8px 14px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity 0.4s;';
       document.body.appendChild(el);
     }
-    el.style.background   = isError ? '#D85A30' : '#378ADD';
-    el.style.color        = '#fff';
-    el.style.opacity      = '1';
-    el.textContent        = msg;
+    el.style.background = isError ? '#D85A30' : '#378ADD';
+    el.style.color = '#fff';
+    el.style.opacity = '1';
+    el.textContent = msg;
     clearTimeout(el._timer);
     el._timer = setTimeout(() => { el.style.opacity = '0'; }, isError ? 4000 : 2000);
   }
@@ -347,12 +345,10 @@
   async function fetchEntries() {
     showSyncStatus('불러오는 중…');
     try {
-      const res = await fetch(JSONBIN_URL, {
-        headers: { 'X-Master-Key': JSONBIN_API_KEY }
-      });
+      const res = await fetch(FIREBASE_URL);
       if (!res.ok) throw new Error(res.status);
       const data = await res.json();
-      entries = Array.isArray(data.record?.entries) ? data.record.entries : [];
+      entries = Array.isArray(data) ? data : [];
       showSyncStatus('불러오기 완료');
       render();
     } catch (e) {
@@ -365,13 +361,10 @@
     isSyncing = true;
     showSyncStatus('저장 중…');
     try {
-      const res = await fetch(JSONBIN_URL, {
+      const res = await fetch(FIREBASE_URL, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Master-Key': JSONBIN_API_KEY
-        },
-        body: JSON.stringify({ entries })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entries)
       });
       if (!res.ok) throw new Error(res.status);
       showSyncStatus('저장 완료 ✓');
