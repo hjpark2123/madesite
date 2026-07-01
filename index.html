@@ -274,7 +274,7 @@
 <body>
 <div class="container">
   <div class="search-card">
-    <input id="search-title" type="text" placeholder="제목으로 검색" autocomplete="off">
+    <input id="search-title" type="text" placeholder="제목 또는 단어로 검색" autocomplete="off">
   </div>
 
   <h1>띄어쓰기 검사 기록</h1>
@@ -446,7 +446,13 @@
     return order.map(key => ({ title: key, items: map.get(key) }));
   }
 
-  const PAGE_SIZE = 10;
+  function highlight(str, query) {
+    if (!query) return escapeHtml(str);
+    const escaped = escapeHtml(str);
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return escaped.replace(new RegExp(`(${escapedQuery})`, 'gi'),
+      '<mark style="background:#fff176;border-radius:2px;padding:0 1px;">$1</mark>');
+  }
   let collapsedTitles = new Set();
   let visibleCounts = {};
 
@@ -470,7 +476,11 @@
 
     const query = document.getElementById('search-title').value.trim().toLowerCase();
     const filtered = query
-      ? entries.filter(e => (e.title || '').toLowerCase().includes(query))
+      ? entries.filter(e =>
+          (e.title || '').toLowerCase().includes(query) ||
+          (e.orig  || '').toLowerCase().includes(query) ||
+          (e.fixed || '').toLowerCase().includes(query)
+        )
       : entries;
 
     if (entries.length === 0) {
@@ -503,8 +513,8 @@
         const globalIdx = entries.indexOf(e);
         return `
           <tr>
-            <td>${escapeHtml(e.orig)}</td>
-            <td>${escapeHtml(e.fixed)}</td>
+            <td>${highlight(e.orig, query)}</td>
+            <td>${highlight(e.fixed, query)}</td>
             <td style="text-align:right;">
               <button class="del-btn" data-idx="${globalIdx}" aria-label="삭제">✕</button>
             </td>
