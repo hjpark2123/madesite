@@ -341,9 +341,7 @@
     el.style.opacity      = '1';
     el.textContent        = msg;
     clearTimeout(el._timer);
-    if (!isError) {
-      el._timer = setTimeout(() => { el.style.opacity = '0'; }, 2000);
-    }
+    el._timer = setTimeout(() => { el.style.opacity = '0'; }, isError ? 4000 : 2000);
   }
 
   async function fetchEntries() {
