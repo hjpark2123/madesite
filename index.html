@@ -446,6 +446,8 @@
     return order.map(key => ({ title: key, items: map.get(key) }));
   }
 
+  const PAGE_SIZE = 10;
+
   function highlight(str, query) {
     if (!query) return escapeHtml(str);
     const escaped = escapeHtml(str);
