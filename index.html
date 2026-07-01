@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>띄어쓰기 검사 앱</title>
+<style>
+  :root {
+    --border: #e3e1d8;
+    --border-strong: #c9c7bc;
+    --text-primary: #222;
+    --text-secondary: #6b6a64;
+    --text-muted: #999790;
+    --surface-1: #f6f5f0;
+    --surface-2: #ffffff;
+    --accent: #378ADD;
+    --danger: #D85A30;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    background: var(--surface-1);
+    margin: 0;
+    padding: 2rem 1rem;
+    color: var(--text-primary);
+  }
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 0.25rem;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0 0 1.5rem;
+  }
+  .form-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .field label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 4px;
+  }
+  input[type="text"] {
+    width: 100%;
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--surface-2);
+    color: var(--text-primary);
+  }
+  input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(55,138,221,0.15);
+  }
+  .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .count {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+  button.clear-btn {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  button.clear-btn:hover {
+    background: var(--surface-1);
+  }
+  .search-card {
+    margin-bottom: 1rem;
+  }
+  .search-card input[type="text"] {
+    height: 40px;
+  }
+  .group-block {
+    margin-bottom: 1.25rem;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .group-del-btn {
+    background: rgba(255,255,255,0.6);
+    border: none;
+    border-radius: 6px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    color: #5a5a52;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .group-del-btn:hover {
+    background: rgba(255,255,255,0.9);
+  }
+  .group-header-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .group-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+    color: #3a3a34;
+  }
+  .group-meta {
+    font-size: 12px;
+    color: #5a5a52;
+    margin: 2px 0 0;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 2.5rem 0;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  .group-block table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    background: var(--surface-2);
+  }
+  thead th {
+    text-align: left;
+    padding: 10px 8px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 13px;
+    background: var(--surface-1);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border);
+    word-break: break-word;
+    vertical-align: top;
+  }
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .del-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 4px 6px;
+  }
+  .del-btn:hover {
+    color: var(--danger);
+  }
+  .muted-cell {
+    color: var(--text-muted);
+  }
+  .title-locked {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+  }
+  .title-locked .label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-right: 6px;
+  }
+  .title-locked .value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .title-locked .left {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .change-title-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .change-title-btn:hover {
+    background: var(--surface-2);
+  }
+  .group-header {
+    cursor: pointer;
+    user-select: none;
+  }
+  .group-toggle-icon {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: #5a5a52;
+    transition: transform 0.15s ease;
+    width: 14px;
+    text-align: center;
+  }
+  .group-block.collapsed .group-toggle-icon {
+    transform: rotate(-90deg);
+  }
+  .group-block.collapsed table {
+    display: none;
+  }
+  .group-block.collapsed .load-more-row {
+    display: none;
+  }
+  .load-more-row td {
+    text-align: center;
+    padding: 8px;
+  }
+  .load-more-btn {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 5px 14px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .load-more-btn:hover {
+    background: var(--surface-1);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="search-card">
+    <input id="search-title" type="text" placeholder="제목으로 검색" autocomplete="off">
+  </div>
+
+  <h1>띄어쓰기 검사 기록</h1>
+  <p class="subtitle">원고 단어와 띄어쓰기 맞춤법 단어를 입력하면 자동으로 목록에 쌓입니다. (버튼 없이 Tab 또는 Enter로 이동/저장)</p>
+
+  <div class="form-card">
+    <div class="field" style="margin-bottom:12px;" id="title-field-wrap">
+      <label for="f-title">제목</label>
+      <input id="f-title" type="text" placeholder="책 또는 원고 제목" autocomplete="off">
+    </div>
+    <div class="title-locked" id="title-locked-wrap" style="display:none; margin-bottom:12px;">
+      <div class="left">
+        <span class="label">제목</span><span class="value" id="title-locked-value"></span>
+      </div>
+      <button type="button" class="change-title-btn" id="change-title-btn">제목 변경</button>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="f-orig">원고 단어 (찾은 단어)</label>
+        <input id="f-orig" type="text" placeholder="예: 할수있다" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="f-fixed">띄어쓰기 맞춤법 단어</label>
+        <input id="f-fixed" type="text" placeholder="예: 할 수 있다" autocomplete="off">
+      </div>
+    </div>
+    <p class="hint">제목을 입력하고 Enter를 누르면 제목이 고정되고, 이후에는 원고 단어와 맞춤법 단어만 계속 입력하면 같은 제목 아래에 쌓입니다. 다른 책으로 바꾸려면 "제목 변경"을 누르세요.</p>
+  </div>
+
+  <div class="toolbar">
+    <span class="count" id="count-label">0개 항목</span>
+    <button class="clear-btn" id="clear-btn">전체 삭제</button>
+  </div>
+
+  <div class="empty-state" id="empty-state">
+    아직 저장된 항목이 없습니다. 위에서 입력을 시작해보세요.
+  </div>
+
+  <div id="groups-container"></div>
+</div>
+
+<script>
+  // ── JSONbin 설정 ──────────────────────────────────────
+  const JSONBIN_API_KEY = '$2a$10$7DtI42mV7tlmwe7BBtCmKOm8iKZhl8VbGjnTCvGSIyUhPG0FJuG2i';
+  const JSONBIN_BIN_ID  = '6a44cbaca8b6024c7625aa79';
+  const JSONBIN_URL     = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+  // ─────────────────────────────────────────────────────
+
+  const TITLE_STORAGE_KEY = 'spacing-check-current-title';
+  let currentTitle = '';
+  let entries = [];
+  let isSyncing = false;
+
+  function showSyncStatus(msg, isError) {
+    let el = document.getElementById('sync-status');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'sync-status';
+      el.style.cssText = 'position:fixed;bottom:16px;right:16px;padding:8px 14px;border-radius:8px;font-size:13px;z-index:9999;transition:opacity 0.4s;';
+      document.body.appendChild(el);
+    }
+    el.style.background   = isError ? '#D85A30' : '#378ADD';
+    el.style.color        = '#fff';
+    el.style.opacity      = '1';
+    el.textContent        = msg;
+    clearTimeout(el._timer);
+    if (!isError) {
+      el._timer = setTimeout(() => { el.style.opacity = '0'; }, 2000);
+    }
+  }
+
+  async function fetchEntries() {
+    showSyncStatus('불러오는 중…');
+    try {
+      const res = await fetch(JSONBIN_URL, {
+        headers: { 'X-Master-Key': JSONBIN_API_KEY }
+      });
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      entries = Array.isArray(data.record?.entries) ? data.record.entries : [];
+      showSyncStatus('불러오기 완료');
+      render();
+    } catch (e) {
+      showSyncStatus('불러오기 실패 – 인터넷 연결을 확인해주세요', true);
+    }
+  }
+
+  async function saveEntries() {
+    if (isSyncing) return;
+    isSyncing = true;
+    showSyncStatus('저장 중…');
+    try {
+      const res = await fetch(JSONBIN_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': JSONBIN_API_KEY
+        },
+        body: JSON.stringify({ entries })
+      });
+      if (!res.ok) throw new Error(res.status);
+      showSyncStatus('저장 완료 ✓');
+    } catch (e) {
+      showSyncStatus('저장 실패 – 인터넷 연결을 확인해주세요', true);
+    } finally {
+      isSyncing = false;
+    }
+  }
+
+  function lockTitle(title) {
+    currentTitle = title;
+    try { localStorage.setItem(TITLE_STORAGE_KEY, title); } catch (e) {}
+    document.getElementById('title-field-wrap').style.display = 'none';
+    document.getElementById('title-locked-wrap').style.display = 'flex';
+    document.getElementById('title-locked-value').textContent = title || '(제목 없음)';
+    document.getElementById('f-orig').focus();
+  }
+
+  function unlockTitle() {
+    currentTitle = '';
+    try { localStorage.removeItem(TITLE_STORAGE_KEY); } catch (e) {}
+    document.getElementById('title-field-wrap').style.display = 'block';
+    document.getElementById('title-locked-wrap').style.display = 'none';
+    const titleInput = document.getElementById('f-title');
+    titleInput.value = '';
+    titleInput.focus();
+  }
+
+  function restoreLockedTitle() {
+    try {
+      const saved = localStorage.getItem(TITLE_STORAGE_KEY);
+      if (saved !== null && saved !== '') {
+        lockTitle(saved);
+      }
+    } catch (e) {}
+  }
+
+  document.getElementById('change-title-btn').addEventListener('click', unlockTitle);
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash);
+  }
+
+  function pastelColorForTitle(title) {
+    const hue = hashString(title) % 360;
+    return `hsl(${hue}, 65%, 88%)`;
+  }
+
+  function groupByTitle(list) {
+    const map = new Map();
+    const order = [];
+    list.forEach(e => {
+      const key = (e.title && e.title.trim()) ? e.title.trim() : '(제목 없음)';
+      if (!map.has(key)) {
+        map.set(key, []);
+        order.push(key);
+      }
+      map.get(key).push(e);
+    });
+    return order.map(key => ({ title: key, items: map.get(key) }));
+  }
+
+  const PAGE_SIZE = 10;
+  let collapsedTitles = new Set();
+  let visibleCounts = {};
+
+  function loadCollapsedState() {
+    try {
+      const raw = localStorage.getItem('spacing-check-collapsed');
+      if (raw) collapsedTitles = new Set(JSON.parse(raw));
+    } catch (e) {}
+  }
+
+  function saveCollapsedState() {
+    try {
+      localStorage.setItem('spacing-check-collapsed', JSON.stringify(Array.from(collapsedTitles)));
+    } catch (e) {}
+  }
+
+  function render() {
+    const empty = document.getElementById('empty-state');
+    const container = document.getElementById('groups-container');
+    document.getElementById('count-label').textContent = entries.length + '개 항목';
+
+    const query = document.getElementById('search-title').value.trim().toLowerCase();
+    const filtered = query
+      ? entries.filter(e => (e.title || '').toLowerCase().includes(query))
+      : entries;
+
+    if (entries.length === 0) {
+      empty.style.display = 'block';
+      container.innerHTML = '';
+      return;
+    }
+    empty.style.display = 'none';
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="empty-state">검색 결과가 없습니다.</div>';
+      return;
+    }
+
+    const groups = groupByTitle(filtered);
+
+    container.innerHTML = groups.map(group => {
+      const color = pastelColorForTitle(group.title);
+      const isCurrent = currentTitle.trim() === group.title || (!currentTitle.trim() && group.title === '(제목 없음)');
+      const isCollapsed = collapsedTitles.has(group.title) && !isCurrent;
+
+      if (!(group.title in visibleCounts)) {
+        visibleCounts[group.title] = PAGE_SIZE;
+      }
+      const visibleCount = visibleCounts[group.title];
+      const visibleItems = group.items.slice(0, visibleCount);
+      const hasMore = group.items.length > visibleCount;
+
+      const rows = visibleItems.map(e => {
+        const globalIdx = entries.indexOf(e);
+        return `
+          <tr>
+            <td>${escapeHtml(e.orig)}</td>
+            <td>${escapeHtml(e.fixed)}</td>
+            <td style="text-align:right;">
+              <button class="del-btn" data-idx="${globalIdx}" aria-label="삭제">✕</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      const loadMoreRow = hasMore ? `
+        <tr class="load-more-row">
+          <td colspan="3">
+            <button class="load-more-btn" data-title="${escapeHtml(group.title)}">
+              더보기 (${group.items.length - visibleCount}개 더)
+            </button>
+          </td>
+        </tr>
+      ` : '';
+
+      return `
+        <div class="group-block ${isCollapsed ? 'collapsed' : ''}" data-group-title="${escapeHtml(group.title)}">
+          <div class="group-header" style="background:${color};" data-toggle-title="${escapeHtml(group.title)}">
+            <span class="group-toggle-icon">▾</span>
+            <button class="group-del-btn" data-title="${escapeHtml(group.title)}" aria-label="이 책 전체 삭제">✕</button>
+            <div class="group-header-text">
+              <p class="group-title">${escapeHtml(group.title)}</p>
+              <p class="group-meta">${group.items.length}개 항목</p>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:45%;">원고 단어</th>
+                <th style="width:45%;">맞춤법 단어</th>
+                <th style="width:10%;"></th>
+              </tr>
+            </thead>
+            <tbody>${rows}${loadMoreRow}</tbody>
+          </table>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.del-btn').forEach(btn => {
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        entries.splice(idx, 1);
+        saveEntries();
+        render();
+      });
+    });
+
+    container.querySelectorAll('.group-del-btn').forEach(btn => {
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const title = btn.getAttribute('data-title');
+        if (confirm(`"${title}"의 모든 항목을 삭제하시겠습니까?`)) {
+          entries = entries.filter(e => {
+            const key = (e.title && e.title.trim()) ? e.title.trim() : '(제목 없음)';
+            return key !== title;
+          });
+          delete visibleCounts[title];
+          saveEntries();
+          render();
+        }
+      });
+    });
+
+    container.querySelectorAll('.load-more-btn').forEach(btn => {
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const title = btn.getAttribute('data-title');
+        visibleCounts[title] = (visibleCounts[title] || PAGE_SIZE) + PAGE_SIZE;
+        render();
+      });
+    });
+
+    container.querySelectorAll('.group-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const title = header.getAttribute('data-toggle-title');
+        if (collapsedTitles.has(title)) {
+          collapsedTitles.delete(title);
+        } else {
+          collapsedTitles.add(title);
+        }
+        saveCollapsedState();
+        render();
+      });
+    });
+  }
+
+  function tryAutoSave() {
+    const titleInput = document.getElementById('f-title');
+    const orig = document.getElementById('f-orig');
+    const fixed = document.getElementById('f-fixed');
+
+    const origVal = orig.value.trim();
+    const fixedVal = fixed.value.trim();
+
+    if (!origVal || !fixedVal) return false;
+
+    if (document.getElementById('title-locked-wrap').style.display === 'none') {
+      lockTitle(titleInput.value.trim());
+    }
+
+    entries.unshift({
+      title: currentTitle.trim(),
+      orig: origVal,
+      fixed: fixedVal,
+      ts: Date.now()
+    });
+    saveEntries();
+    render();
+
+    orig.value = '';
+    fixed.value = '';
+    orig.focus();
+    return true;
+  }
+
+  document.getElementById('f-fixed').addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      tryAutoSave();
+    }
+  });
+
+  document.getElementById('f-orig').addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      document.getElementById('f-fixed').focus();
+    }
+  });
+
+  document.getElementById('f-title').addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      lockTitle(document.getElementById('f-title').value.trim());
+    }
+  });
+
+  document.getElementById('search-title').addEventListener('input', render);
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    if (entries.length === 0) return;
+    if (confirm('전체 항목을 삭제하시겠습니까?')) {
+      entries = [];
+      saveEntries();
+      render();
+    }
+  });
+
+  loadCollapsedState();
+  fetchEntries();
+  restoreLockedTitle();
+</script>
+</body>
+</html>
