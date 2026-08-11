@@ -573,45 +573,60 @@ const SpacingEngine = (function () {
           <input type="checkbox" class="unify-toggle" data-idx="${idx}" checked>자동</label></td>
         <td>${escapeHtml(u.rule + ' · ' + u.note)}</td>
         <td><span class="before">${escapeHtml(u.before)}</span></td>
-        <td><span class="after" data-idx="${idx}">${escapeHtml(u.after)}</span>
-          <div class="customBox hidden" data-idx="${idx}" style="margin-top:6px;display:flex;gap:6px;align-items:center">
-            <input type="text" class="unify-custom" data-idx="${idx}" value="${escapeHtml(u.before)}"
-              style="border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:13px;width:140px">
-            <button class="unify-apply" data-idx="${idx}"
-              style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12.5px;cursor:pointer">반영</button>
-          </div>
-        </td>`;
+        <td><span class="after" data-idx="${idx}">${escapeHtml(u.after)}</span></td>`;
       tbody.appendChild(tr);
+      // 직접 수정용 별도 줄 (체크를 끄면 나타남)
+      const etr = document.createElement('tr');
+      etr.className = 'editorRow hidden';
+      etr.dataset.idx = idx;
+      etr.innerHTML = `<td colspan="4" style="background:#f3f7ff;border-radius:8px">
+        <div style="display:flex;gap:10px;align-items:center;padding:6px 4px;flex-wrap:wrap">
+          <span style="font-size:13px;color:var(--ink);font-weight:600">✏️ 원하는 형태를 직접 입력하세요:</span>
+          <input type="text" class="unify-custom" data-idx="${idx}" value="${escapeHtml(u.after)}"
+            style="border:1.5px solid var(--accent);border-radius:8px;padding:7px 12px;font-size:14px;width:200px">
+          <button class="unify-apply" data-idx="${idx}"
+            style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13.5px;font-weight:600;cursor:pointer">반영</button>
+        </div></td>`;
+      tbody.appendChild(etr);
     });
     tbody.querySelectorAll('input.unify-toggle').forEach(cb => {
       cb.addEventListener('change', () => {
         const idx = +cb.dataset.idx;
         const u = lastResult.unifications[idx];
-        const box = tbody.querySelector(`.customBox[data-idx="${idx}"]`);
+        const etr = tbody.querySelector(`tr.editorRow[data-idx="${idx}"]`);
         if (cb.checked) {           // 자동 모드 복귀
           u.customText = null;
-          box.classList.add('hidden');
+          etr.classList.add('hidden');
+          const afterSpan = tbody.querySelector(`span.after[data-idx="${idx}"]`);
+          afterSpan.textContent = u.after;
         } else {                    // 직접 수정 모드: 입력 후 '반영'
-          box.classList.remove('hidden');
-          box.querySelector('input').focus();
+          etr.classList.remove('hidden');
+          const input = etr.querySelector('input');
+          input.value = u.customText != null ? u.customText : u.after;
+          input.focus();
+          input.select();
         }
         recomputeUnify();
       });
     });
+    const applyCustom = idx => {
+      const u = lastResult.unifications[idx];
+      const input = tbody.querySelector(`input.unify-custom[data-idx="${idx}"]`);
+      const btn = tbody.querySelector(`button.unify-apply[data-idx="${idx}"]`);
+      const val = input.value.trim();
+      if (!val) return;
+      u.customText = val;
+      const afterSpan = tbody.querySelector(`span.after[data-idx="${idx}"]`);
+      afterSpan.textContent = val;
+      btn.textContent = '반영됨!';
+      setTimeout(() => { btn.textContent = '반영'; }, 1200);
+      recomputeUnify();
+    };
     tbody.querySelectorAll('button.unify-apply').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = +btn.dataset.idx;
-        const u = lastResult.unifications[idx];
-        const input = tbody.querySelector(`input.unify-custom[data-idx="${idx}"]`);
-        const val = input.value.trim();
-        if (!val) return;
-        u.customText = val;
-        const afterSpan = tbody.querySelector(`span.after[data-idx="${idx}"]`);
-        afterSpan.textContent = val;
-        btn.textContent = '반영됨!';
-        setTimeout(() => { btn.textContent = '반영'; }, 1200);
-        recomputeUnify();
-      });
+      btn.addEventListener('click', () => applyCustom(+btn.dataset.idx));
+    });
+    tbody.querySelectorAll('input.unify-custom').forEach(input => {
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') applyCustom(+input.dataset.idx); });
     });
     $('changeBox').classList.toggle('hidden', r.changes.length + r.unifications.length === 0);
   }
