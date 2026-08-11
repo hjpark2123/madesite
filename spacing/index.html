@@ -82,7 +82,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     · 보조용언은 <b>띄어 쓰는 것</b>을 원칙으로 합니다 — 단, 국립국어원 사전에 등재된 합성용언(물어보다, 잃어버리다, 털어놓다 등 80개)은 붙임을 유지합니다<br>
     · <b>^</b> 표시는 띄어 쓰고, <b>-</b> 표시는 붙여 씁니다<br>
     · 의존명사(수, 것, 때, 때문, 만큼, 뿐)는 띄어 씁니다<br>
-    · 글 전체에서 같은 단어의 띄어쓰기는 <b>다수 형태로 통일</b>합니다<br>
+    · 글 전체에서 같은 단어의 띄어쓰기는 <b>다수 형태로 통일</b>하며, 변경 내역에서 항목별로 직접 수정할 수 있습니다<br>
     · 오픈소스 형태소 분석기 <b>Kiwi</b>로 문서 전체를 낱말 단위로 재분석해, 붙어 쓴 문장 전체를 교정합니다
       (조사·어미·접미사 붙임, 의존명사·단위명사 띄움, 합성어(지난주 등)·인명은 유지)<br>
     · 워드 파일은 <b>이미지·표·도표·각주 위치와 글자 서식을 그대로 보존</b>하며, 각주·미주·메모 안의 글도 함께 교정합니다
@@ -127,7 +127,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <button class="btn ghost" id="copyText">교정 텍스트 복사</button>
 
     <div id="changeBox" class="hidden">
-      <h2 style="margin-top:22px">변경 내역</h2>
+      <h2 style="margin-top:22px">변경 내역</h2>\n      <p style="font-size:12.5px;color:var(--sub);margin-bottom:8px">통일성 항목은 기본으로 자동 적용됩니다. 다르게 고치고 싶으면 "자동" 체크를 끄고, 나타나는 입력창에 원하는 형태를 쓴 뒤 [반영]을 누르세요 — 문서 전체가 그 형태로 통일되고 다운로드에도 반영됩니다.</p>
       <div class="scroll"><table id="changeTable">
         <thead><tr><th style="width:56px">단락</th><th style="width:170px">규칙</th><th>수정 전</th><th>수정 후</th></tr></thead>
         <tbody></tbody>
@@ -348,7 +348,8 @@ const SpacingEngine = (function () {
 
   const JOSA_GUARD = '(?=$|[^가-힣]|[은는이가을를에의도만과와로]|으로|에서|에게|부터|까지|처럼|보다|라도|마다|밖에|조차|마저)';
 
-  function unifyDocument(paragraphs) {
+  // 통일 후보 계산 (적용은 별도 함수 — 항목별로 켜고 끌 수 있게)
+  function computeUnifications(paragraphs) {
     const wordCount = new Map();
     const pairCount = new Map();
     const tokenize = p => p.split(/[^가-힣]+/).filter(Boolean);
@@ -371,33 +372,47 @@ const SpacingEngine = (function () {
     }
 
     const unifications = [];
-    const decisions = new Map();
+    const seen = new Set();
     for (const [pair, pc] of pairCount) {
       const [a, b] = pair.split(' ');
       if (!a || !b) continue;
       if (a.length + b.length > 10) continue;
       if (b.length < 2 && a.length < 2) continue;
       const merged = a + b;
-      if (UNIFY_BLOCKLIST.has(merged)) continue;
+      if (UNIFY_BLOCKLIST.has(merged) || seen.has(merged)) continue;
       const mc = wordCount.get(merged) || 0;
       if (mc === 0) continue;
-      decisions.set(merged, { decision: mc > pc ? 'merge' : 'split', a, b, mc, pc });
+      seen.add(merged);
+      const tie = mc === pc;
+      const kind = mc > pc ? 'merge' : 'split';
+      unifications.push({
+        kind, a, b, merged, mc, pc, tie,
+        rule: kind === 'merge' ? '통일(붙임)' : '통일(띄움)',
+        before: kind === 'merge' ? a + ' ' + b : merged,
+        after: kind === 'merge' ? merged : a + ' ' + b,
+        note: (kind === 'merge' ? `붙임 ${mc}회 vs 띄움 ${pc}회` : `띄움 ${pc}회 vs 붙임 ${mc}회`) + (tie ? ' (동수 → 띄어쓰기 원칙 적용)' : ' → 다수 형태로 통일')
+      });
     }
+    return unifications;
+  }
 
+  function applyUnifications(paragraphs, unifs) {
     let out = paragraphs.slice();
-    for (const [merged, d] of decisions) {
-      const { decision, a, b, mc, pc } = d;
-      if (decision === 'merge') {
-        const re = new RegExp('(?<![가-힣])' + esc(a) + ' ' + esc(b) + JOSA_GUARD, 'g');
-        out = out.map(p => p.replace(re, merged));
-        unifications.push({ rule: '통일(붙임)', before: a + ' ' + b, after: merged, note: `붙임 ${mc}회 vs 띄움 ${pc}회 → 다수 형태로 통일` });
+    for (const u of unifs) {
+      if (u.customText != null) {
+        // 사용자가 지정한 형태로 두 표기 모두 통일
+        const rePair = new RegExp('(?<![가-힣])' + esc(u.a) + ' ' + esc(u.b) + JOSA_GUARD, 'g');
+        const reMerged = new RegExp('(?<![가-힣])' + esc(u.merged) + JOSA_GUARD, 'g');
+        out = out.map(p => p.replace(rePair, u.customText).replace(reMerged, u.customText));
+      } else if (u.kind === 'merge') {
+        const re = new RegExp('(?<![가-힣])' + esc(u.a) + ' ' + esc(u.b) + JOSA_GUARD, 'g');
+        out = out.map(p => p.replace(re, u.merged));
       } else {
-        const re = new RegExp('(?<![가-힣])' + esc(merged) + JOSA_GUARD, 'g');
-        out = out.map(p => p.replace(re, a + ' ' + b));
-        unifications.push({ rule: '통일(띄움)', before: merged, after: a + ' ' + b, note: `띄움 ${pc}회 vs 붙임 ${mc}회 → 띄어쓰기 원칙으로 통일` });
+        const re = new RegExp('(?<![가-힣])' + esc(u.merged) + JOSA_GUARD, 'g');
+        out = out.map(p => p.replace(re, u.a + ' ' + u.b));
       }
     }
-    return { paragraphs: out, unifications };
+    return out;
   }
 
   function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
@@ -410,11 +425,12 @@ const SpacingEngine = (function () {
       for (const c of r.changes) changes.push({ ...c, para: i + 1 });
       return r.text;
     });
-    const u = unifyDocument(corrected);
-    return { paragraphs: u.paragraphs, changes, unifications: u.unifications };
+    const unifications = computeUnifications(corrected);
+    const applied = applyUnifications(corrected, unifications);
+    return { paragraphs: applied, stage1: corrected, changes, unifications };
   }
 
-  return { correctDocument, correctParagraph };
+  return { correctDocument, correctParagraph, applyUnifications };
 })();
 
 
@@ -536,27 +552,93 @@ const SpacingEngine = (function () {
   window.__rerun = () => { if (lastResult) finish(lastResult.originalParagraphs); };
 
   function render(r) {
+    renderTable(r);
+    renderPreview(r);
+    $('result').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function renderTable(r) {
+    const tbody = $('changeTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    for (const c of r.changes) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${c.para}</td><td>${escapeHtml(c.rule)}</td>
+        <td><span class="before">${escapeHtml(c.before)}</span></td>
+        <td><span class="after">${escapeHtml(c.after)}</span></td>`;
+      tbody.appendChild(tr);
+    }
+    r.unifications.forEach((u, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td><label style="display:flex;align-items:center;gap:6px;cursor:pointer" title="끄면 직접 수정할 수 있어요">
+          <input type="checkbox" class="unify-toggle" data-idx="${idx}" checked>자동</label></td>
+        <td>${escapeHtml(u.rule + ' · ' + u.note)}</td>
+        <td><span class="before">${escapeHtml(u.before)}</span></td>
+        <td><span class="after" data-idx="${idx}">${escapeHtml(u.after)}</span>
+          <div class="customBox hidden" data-idx="${idx}" style="margin-top:6px;display:flex;gap:6px;align-items:center">
+            <input type="text" class="unify-custom" data-idx="${idx}" value="${escapeHtml(u.before)}"
+              style="border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:13px;width:140px">
+            <button class="unify-apply" data-idx="${idx}"
+              style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12.5px;cursor:pointer">반영</button>
+          </div>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('input.unify-toggle').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const idx = +cb.dataset.idx;
+        const u = lastResult.unifications[idx];
+        const box = tbody.querySelector(`.customBox[data-idx="${idx}"]`);
+        if (cb.checked) {           // 자동 모드 복귀
+          u.customText = null;
+          box.classList.add('hidden');
+        } else {                    // 직접 수정 모드: 입력 후 '반영'
+          box.classList.remove('hidden');
+          box.querySelector('input').focus();
+        }
+        recomputeUnify();
+      });
+    });
+    tbody.querySelectorAll('button.unify-apply').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = +btn.dataset.idx;
+        const u = lastResult.unifications[idx];
+        const input = tbody.querySelector(`input.unify-custom[data-idx="${idx}"]`);
+        const val = input.value.trim();
+        if (!val) return;
+        u.customText = val;
+        const afterSpan = tbody.querySelector(`span.after[data-idx="${idx}"]`);
+        afterSpan.textContent = val;
+        btn.textContent = '반영됨!';
+        setTimeout(() => { btn.textContent = '반영'; }, 1200);
+        recomputeUnify();
+      });
+    });
+    $('changeBox').classList.toggle('hidden', r.changes.length + r.unifications.length === 0);
+  }
+
+  // 체크 상태·직접 수정 내용에 따라 통일성 교정을 다시 적용 (결과·다운로드에 즉시 반영)
+  function recomputeUnify() {
+    if (!lastResult || !lastResult.stage1) return;
+    const selected = [];
+    document.querySelectorAll('#changeTable input.unify-toggle').forEach(cb => {
+      const u = lastResult.unifications[+cb.dataset.idx];
+      if (cb.checked) { u.customText = null; selected.push(u); } // 자동 통일
+      else if (u.customText != null) selected.push(u);            // 사용자가 지정한 형태로 통일
+      // 체크 해제 + 아직 반영 전 → 이 항목은 원문 그대로 둠
+    });
+    lastResult.paragraphs = SpacingEngine.applyUnifications(lastResult.stage1, selected);
+    renderPreview(lastResult);
+  }
+
+  function renderPreview(r) {
     $('result').classList.remove('hidden');
     const changedParas = r.paragraphs.filter((p, i) => p !== r.originalParagraphs[i]).length;
     $('statChanges').textContent = window.__spacer
       ? `전수 교정: ${changedParas}개 단락 수정`
       : `규칙 교정 ${r.changes.length}건`;
-    $('statUnify').textContent = `통일성 교정 ${r.unifications.length}건`;
-
-    const tbody = $('changeTable').querySelector('tbody');
-    tbody.innerHTML = '';
-    const rows = [
-      ...r.changes.map(c => [c.para, c.rule, c.before, c.after]),
-      ...r.unifications.map(u => ['전체', u.rule + ' · ' + u.note, u.before, u.after])
-    ];
-    for (const [para, rule, before, after] of rows) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${para}</td><td>${escapeHtml(rule)}</td>
-        <td><span class="before">${escapeHtml(before)}</span></td>
-        <td><span class="after">${escapeHtml(after)}</span></td>`;
-      tbody.appendChild(tr);
-    }
-    $('changeBox').classList.toggle('hidden', rows.length === 0);
+    const customU = r.unifications.filter(u => u.customText != null).length;
+    const autoU = document.querySelectorAll('#changeTable input.unify-toggle:checked').length;
+    $('statUnify').textContent = `통일성 교정 ${r.unifications.length}건 (자동 ${autoU} · 직접 수정 ${customU})`;
 
     const list = $('paraList');
     list.innerHTML = '';
@@ -572,7 +654,6 @@ const SpacingEngine = (function () {
       }
     });
     $('paraBox').classList.toggle('hidden', shown === 0);
-    $('result').scrollIntoView({ behavior: 'smooth' });
   }
 
   function escapeHtml(s) {
