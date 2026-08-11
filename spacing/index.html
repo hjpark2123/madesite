@@ -582,7 +582,7 @@ const SpacingEngine = (function () {
       etr.innerHTML = `<td colspan="4" style="background:#f3f7ff;border-radius:8px">
         <div style="display:flex;gap:10px;align-items:center;padding:6px 4px;flex-wrap:wrap">
           <span style="font-size:13px;color:var(--ink);font-weight:600">✏️ 원하는 형태를 직접 입력하세요:</span>
-          <input type="text" class="unify-custom" data-idx="${idx}" value="${escapeHtml(u.after)}"
+          <input type="text" class="unify-custom" data-idx="${idx}" value="" placeholder="원하는 형태를 입력"
             style="border:1.5px solid var(--accent);border-radius:8px;padding:7px 12px;font-size:14px;width:200px">
           <button class="unify-apply" data-idx="${idx}"
             style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13.5px;font-weight:600;cursor:pointer">반영</button>
@@ -602,9 +602,8 @@ const SpacingEngine = (function () {
         } else {                    // 직접 수정 모드: 입력 후 '반영'
           etr.classList.remove('hidden');
           const input = etr.querySelector('input');
-          input.value = u.customText != null ? u.customText : u.after;
+          input.value = u.customText != null ? u.customText : '';
           input.focus();
-          input.select();
         }
         recomputeUnify();
       });
