@@ -84,7 +84,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     · 의존명사(수, 것, 때, 때문, 만큼, 뿐)는 띄어 씁니다<br>
     · 글 전체에서 같은 단어의 띄어쓰기는 <b>다수 형태로 통일</b>합니다<br>
     · 오픈소스 형태소 분석기 <b>Kiwi</b>로 문서 전체를 낱말 단위로 재분석해, 붙어 쓴 문장 전체를 교정합니다
-      (조사·어미·접미사 붙임, 의존명사·단위명사 띄움, 합성어(지난주 등)·인명은 유지)
+      (조사·어미·접미사 붙임, 의존명사·단위명사 띄움, 합성어(지난주 등)·인명은 유지)<br>
+    · 워드 파일은 <b>이미지·표·도표·각주 위치와 글자 서식을 그대로 보존</b>하며, 각주·미주·메모 안의 글도 함께 교정합니다
   </div>
 
   <div class="card" id="kiwiCard" style="padding:14px 22px">
@@ -475,21 +476,26 @@ const SpacingEngine = (function () {
     }
   }
 
-  // ---------- docx 처리 (서식 보존: 원본 XML의 문단 텍스트만 교체) ----------
+  // ---------- docx 처리 (본문 + 각주/미주/메모까지 교정 대상에 포함) ----------
   async function processDocx(f) {
     const zip = await JSZip.loadAsync(await f.arrayBuffer());
-    const docFile = zip.file('word/document.xml');
-    if (!docFile) throw new Error('올바른 워드 파일이 아닙니다.');
-    const xml = await docFile.async('string');
-    const doc = new DOMParser().parseFromString(xml, 'application/xml');
-    const paras = Array.from(doc.getElementsByTagName('w:p'));
-    const paraNodes = [], paraTexts = [];
-    for (const p of paras) {
-      const ts = Array.from(p.getElementsByTagName('w:t'));
-      paraNodes.push(ts);
-      paraTexts.push(ts.map(t => t.textContent).join(''));
+    if (!zip.file('word/document.xml')) throw new Error('올바른 워드 파일이 아닙니다.');
+    const parts = [];
+    for (const path of ['word/document.xml', 'word/footnotes.xml', 'word/endnotes.xml', 'word/comments.xml']) {
+      const file = zip.file(path);
+      if (!file) continue;
+      const doc = new DOMParser().parseFromString(await file.async('string'), 'application/xml');
+      parts.push({ path, doc });
     }
-    lastDocx = { zip, doc, paraNodes };
+    const paraNodes = [], paraTexts = [];
+    for (const part of parts) {
+      for (const p of Array.from(part.doc.getElementsByTagName('w:p'))) {
+        const ts = Array.from(p.getElementsByTagName('w:t'));
+        paraNodes.push(ts);
+        paraTexts.push(ts.map(t => t.textContent).join(''));
+      }
+    }
+    lastDocx = { zip, parts, paraNodes };
     finish(paraTexts);
   }
 
@@ -595,20 +601,52 @@ const SpacingEngine = (function () {
       .then(() => { $('copyText').textContent = '복사됨!'; setTimeout(() => $('copyText').textContent = '교정 텍스트 복사', 1500); });
   };
 
-  // 원본 docx의 문단 텍스트만 교체 (문단 서식·이미지·표 구조 유지)
+  // 위치·서식 보존 재작성: 교정은 "공백 삽입/삭제 + ^·- 삭제"만 하므로
+  // 글자를 원래 런(run)에 그대로 두고 공백 변화만 각 자리에서 반영한다.
+  // → 이미지·표·도표·각주 표시의 위치와 굵게/기울임 등 글자 서식이 그대로 유지됨
+  function redistribute(ts, orig, corr) {
+    const texts = ts.map(t => t.textContent);
+    const outs = texts.map(() => '');
+    let j = 0, r = 0, k = 0;
+    for (let i = 0; i < orig.length; ) {
+      while (r < texts.length && k >= texts[r].length) { r++; k = 0; }
+      if (r >= texts.length) return false;
+      const oc = orig[i], cc = corr[j];
+      if (cc === oc) { outs[r] += oc; i++; k++; j++; }
+      else if (cc === ' ' && oc !== ' ') { outs[r] += ' '; j++; }            // 공백 삽입
+      else if (oc === ' ' || oc === '^' || oc === '-' || oc === '\t') { i++; k++; } // 문자 삭제
+      else return false;                                                     // 예상 밖 변화 → 폴백
+    }
+    while (j < corr.length) {
+      if (corr[j] === ' ') { outs[outs.length - 1] += ' '; j++; }
+      else return false;
+    }
+    ts.forEach((t, idx) => {
+      if (t.textContent !== outs[idx]) {
+        t.textContent = outs[idx];
+        t.setAttribute('xml:space', 'preserve');
+      }
+    });
+    return true;
+  }
+
   async function rebuildDocx(ctx, corrected) {
-    const { zip, doc, paraNodes } = ctx;
+    const { zip, parts, paraNodes } = ctx;
     paraNodes.forEach((ts, i) => {
       if (!ts.length) return;
       const before = ts.map(t => t.textContent).join('');
       const after = corrected[i];
       if (before === after) return;
-      ts[0].textContent = after;
-      ts[0].setAttribute('xml:space', 'preserve');
-      for (let k = 1; k < ts.length; k++) ts[k].textContent = '';
+      if (!redistribute(ts, before, after)) {
+        // 안전 폴백: 첫 텍스트 조각에 몰아넣기 (드문 경우)
+        ts[0].textContent = after;
+        ts[0].setAttribute('xml:space', 'preserve');
+        for (let k = 1; k < ts.length; k++) ts[k].textContent = '';
+      }
     });
-    const xml = new XMLSerializer().serializeToString(doc);
-    zip.file('word/document.xml', xml);
+    for (const part of parts) {
+      zip.file(part.path, new XMLSerializer().serializeToString(part.doc));
+    }
     return zip.generateAsync({
       type: 'blob',
       mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
