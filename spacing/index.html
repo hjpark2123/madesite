@@ -127,7 +127,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <button class="btn ghost" id="copyText">교정 텍스트 복사</button>
 
     <div id="changeBox" class="hidden">
-      <h2 style="margin-top:22px">변경 내역</h2>\n      <p style="font-size:12.5px;color:var(--sub);margin-bottom:8px">통일성 항목은 기본으로 자동 적용됩니다. 다르게 고치고 싶으면 "자동" 체크를 끄고, 나타나는 입력창에 원하는 형태를 쓴 뒤 [반영]을 누르세요 — 문서 전체가 그 형태로 통일되고 다운로드에도 반영됩니다.</p>
+      <h2 style="margin-top:22px">변경 내역</h2>\n      <p style="font-size:12.5px;color:var(--sub);margin-bottom:8px">통일성 항목은 기본으로 자동 적용됩니다. 다르게 고치고 싶으면 입력창에 원하는 형태를 쓰고 [반영]을 누르세요 — 문서 전체가 그 형태로 통일되고 다운로드에도 반영됩니다. "자동" 체크를 다시 켜면 자동 통일로 돌아갑니다.</p>
       <div class="scroll"><table id="changeTable">
         <thead><tr><th style="width:56px">단락</th><th style="width:170px">규칙</th><th>수정 전</th><th>수정 후</th></tr></thead>
         <tbody></tbody>
@@ -569,41 +569,28 @@ const SpacingEngine = (function () {
     }
     r.unifications.forEach((u, idx) => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td><label style="display:flex;align-items:center;gap:6px;cursor:pointer" title="끄면 직접 수정할 수 있어요">
+      tr.innerHTML = `<td><label style="display:flex;align-items:center;gap:6px;cursor:pointer" title="체크를 켜면 자동 통일로 돌아갑니다">
           <input type="checkbox" class="unify-toggle" data-idx="${idx}" checked>자동</label></td>
         <td>${escapeHtml(u.rule + ' · ' + u.note)}</td>
         <td><span class="before">${escapeHtml(u.before)}</span></td>
-        <td><span class="after" data-idx="${idx}">${escapeHtml(u.after)}</span></td>`;
+        <td><span class="after" data-idx="${idx}">${escapeHtml(u.after)}</span>
+          <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
+            <input type="text" class="unify-custom" data-idx="${idx}" value="" placeholder="직접 수정하려면 입력"
+              style="border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13.5px;width:160px">
+            <button class="unify-apply" data-idx="${idx}"
+              style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">반영</button>
+          </div>
+        </td>`;
       tbody.appendChild(tr);
-      // 직접 수정용 별도 줄 (체크를 끄면 나타남)
-      const etr = document.createElement('tr');
-      etr.className = 'editorRow hidden';
-      etr.dataset.idx = idx;
-      etr.innerHTML = `<td colspan="4" style="background:#f3f7ff;border-radius:8px">
-        <div style="display:flex;gap:10px;align-items:center;padding:6px 4px;flex-wrap:wrap">
-          <span style="font-size:13px;color:var(--ink);font-weight:600">✏️ 원하는 형태를 직접 입력하세요:</span>
-          <input type="text" class="unify-custom" data-idx="${idx}" value="" placeholder="원하는 형태를 입력"
-            style="border:1.5px solid var(--accent);border-radius:8px;padding:7px 12px;font-size:14px;width:200px">
-          <button class="unify-apply" data-idx="${idx}"
-            style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13.5px;font-weight:600;cursor:pointer">반영</button>
-        </div></td>`;
-      tbody.appendChild(etr);
     });
     tbody.querySelectorAll('input.unify-toggle').forEach(cb => {
       cb.addEventListener('change', () => {
         const idx = +cb.dataset.idx;
         const u = lastResult.unifications[idx];
-        const etr = tbody.querySelector(`tr.editorRow[data-idx="${idx}"]`);
         if (cb.checked) {           // 자동 모드 복귀
           u.customText = null;
-          etr.classList.add('hidden');
-          const afterSpan = tbody.querySelector(`span.after[data-idx="${idx}"]`);
-          afterSpan.textContent = u.after;
-        } else {                    // 직접 수정 모드: 입력 후 '반영'
-          etr.classList.remove('hidden');
-          const input = etr.querySelector('input');
-          input.value = u.customText != null ? u.customText : '';
-          input.focus();
+          tbody.querySelector(`input.unify-custom[data-idx="${idx}"]`).value = '';
+          tbody.querySelector(`span.after[data-idx="${idx}"]`).textContent = u.after;
         }
         recomputeUnify();
       });
@@ -615,6 +602,7 @@ const SpacingEngine = (function () {
       const val = input.value.trim();
       if (!val) return;
       u.customText = val;
+      tbody.querySelector(`input.unify-toggle[data-idx="${idx}"]`).checked = false; // 직접 수정됨 표시
       const afterSpan = tbody.querySelector(`span.after[data-idx="${idx}"]`);
       afterSpan.textContent = val;
       btn.textContent = '반영됨!';
