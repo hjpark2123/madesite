@@ -88,6 +88,17 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     · 워드 파일은 <b>이미지·표·도표·각주 위치와 글자 서식을 그대로 보존</b>하며, 각주·미주·메모 안의 글도 함께 교정합니다
   </div>
 
+  <div class="card" style="padding:16px 22px">
+    <b style="font-size:13.5px">붙여 쓰는 단어 등록</b>
+    <span style="font-size:12.5px;color:var(--sub);margin-left:8px">교정기가 자꾸 쪼개는 단어(예: 귀속, 녹음물)를 등록하면 항상 한 단어로 유지됩니다. 등록 내용은 이 브라우저에 저장돼요.</span>
+    <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+      <input type="text" id="uwInput" placeholder="단어 입력 (예: 귀속)"
+        style="border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:14px;width:180px">
+      <button id="uwAdd" class="btn" style="margin-top:0;padding:8px 16px;font-size:13.5px">추가</button>
+    </div>
+    <div id="uwList" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"></div>
+  </div>
+
   <div class="card" id="kiwiCard" style="padding:14px 22px">
     <div style="font-size:13.5px" id="kiwiStatus">형태소 분석기 준비 중…</div>
     <div style="height:6px;background:#e5e7eb;border-radius:3px;margin-top:8px;overflow:hidden">
@@ -444,6 +455,42 @@ const SpacingEngine = (function () {
   let lastDocx = null;     // { zip, doc, paraNodes } — 원본 docx 재작성용
   let lastName = '교정문서';
 
+  // ---------- 붙여 쓰는 단어(사용자 사전) ----------
+  const UW_KEY = 'spacing_userwords';
+  let userWords = [];
+  try { userWords = JSON.parse(localStorage.getItem(UW_KEY) || '[]'); } catch (e) {}
+  window.__userWords = userWords;
+  function saveUW() {
+    try { localStorage.setItem(UW_KEY, JSON.stringify(userWords)); } catch (e) {}
+    window.__userWords = userWords;
+    renderUW();
+    if (window.__rerun) window.__rerun();   // 새 단어를 반영해 다시 교정
+  }
+  function renderUW() {
+    const box = $('uwList');
+    box.innerHTML = '';
+    if (!userWords.length) {
+      box.innerHTML = '<span style="font-size:12.5px;color:#9aa3af">등록된 단어가 없습니다.</span>';
+      return;
+    }
+    userWords.forEach((w, i) => {
+      const chip = document.createElement('span');
+      chip.style.cssText = 'background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:5px 12px;font-size:13px;display:inline-flex;align-items:center;gap:6px';
+      chip.innerHTML = `${escapeHtml(w)} <b style="cursor:pointer" title="삭제">×</b>`;
+      chip.querySelector('b').onclick = () => { userWords.splice(i, 1); saveUW(); };
+      box.appendChild(chip);
+    });
+  }
+  $('uwAdd').onclick = () => {
+    const w = $('uwInput').value.trim().replace(/\s+/g, '');
+    if (!w || w.length < 2 || userWords.includes(w)) { $('uwInput').value = ''; return; }
+    userWords.push(w);
+    $('uwInput').value = '';
+    saveUW();
+  };
+  $('uwInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('uwAdd').onclick(); });
+  renderUW();
+
   // ---------- 탭 ----------
   $('tabFile').onclick = () => { setTab(true); };
   $('tabText').onclick = () => { setTab(false); };
@@ -782,7 +829,24 @@ const SpacingEngine = (function () {
    - 숫자·영문·문장부호·기호가 낀 자리는 원문의 띄어쓰기를 보존
    - 수사(NR) 연쇄는 원문 보존 (수 표기 관행 유지)
    원문 훼손 방지: 토큰 표면은 항상 원문 슬라이스 사용(정규화 결과 미사용) */
-function kiwiSpaceFactory(kiwi) {
+function kiwiSpaceFactory(kiwi, getProtectedWords) {
+  // 절대 쪼개면 안 되는 단어(내장 + 사용자 등록)
+  // 교정 후, 이 단어들 사이에 끼어든 공백을 되돌린다 (원래 띄어 쓰여 있던 것도 붙임)
+  const DEFAULT_PROTECT = ['귀속', '녹음물', '저작물', '창작물', '결과물', '출판물', '인쇄물',
+    '음원', '정산금', '계약금', '선급금', '위약금', '저작권료', '수수료'];
+  const escCh = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // 뒤에 조사·문장부호·끝이 올 때만 결합 (물감처럼 다른 단어의 시작이면 결합하지 않음)
+  const TAIL_GUARD = '(?=$|[^가-힣]|[은는이가을를과와도의로만에처부까조마밖라보된되됨될시하해했])';
+  function repairProtected(out) {
+    const words = [...new Set([...DEFAULT_PROTECT, ...((getProtectedWords && getProtectedWords()) || [])])]
+      .filter(w => w && w.length >= 2).sort((x, y) => y.length - x.length);
+    for (const w of words) {
+      const pat = new RegExp('(?<![가-힣])' + w.split('').map(escCh).join(' ?') + TAIL_GUARD, 'g');
+      out = out.replace(pat, w);
+    }
+    return out;
+  }
+
   const isHangulClass = tag => {
     const c = tag[0];
     if (tag.startsWith('W_')) return false;
@@ -858,7 +922,8 @@ function kiwiSpaceFactory(kiwi) {
       prev = t;
     }
     out += text.slice(lastEnd < 0 ? 0 : lastEnd).replace(/^[ \t]+/, m => m ? ' ' : '');
-    return out.replace(/[ \t]{2,}/g, ' ').replace(/^ +| +$/g, '');
+    out = out.replace(/[ \t]{2,}/g, ' ').replace(/^ +| +$/g, '');
+    return repairProtected(out);
   };
 }
 
@@ -925,7 +990,7 @@ function kiwiSpaceFactory(kiwi) {
     const builder = await KiwiBuilder.create('./kiwi/kiwi-wasm.wasm');
     const kiwi = await builder.build({ modelFiles, modelType: 'cong', loadMultiDict: false });
     if (!kiwi.ready()) throw new Error('init 실패');
-    window.__spacer = kiwiSpaceFactory(kiwi);
+    window.__spacer = kiwiSpaceFactory(kiwi, () => (window.__userWords || []));
     card.style.background = '#e6f4ee';
     bar.parentElement.style.display = 'none';
     status.innerHTML = '<b style="color:#0f7b4f">전수 교정 모드 준비 완료</b> — 문서 전체를 낱말 단위로 교정합니다.';
