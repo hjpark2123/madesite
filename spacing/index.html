@@ -693,6 +693,17 @@ function kiwiSpaceFactory(kiwi) {
       chunkIds[i] = cid;
       if (toks[i].tag === 'NNP') chunkHasNNP[cid] = true;
     }
+    // 보호 대상: NNP가 있으면서 1음절 명사류 조각이 섞인 덩어리(인명·상호가 쪼개진 흔적)
+    // "한국/엔터테인먼트/시장"처럼 온전한 단어들로만 이루어진 덩어리는 원칙대로 띄움
+    const chunkProtect = {};
+    for (let i = 0; i < toks.length; i++) {
+      const cid2 = chunkIds[i];
+      if (!chunkHasNNP[cid2]) continue;
+      if (toks[i].length === 1 && ['NNP','NNG','MM','XR'].includes(toks[i].tag)) chunkProtect[cid2] = true;
+      if (toks[i].tag === 'NNP' && toks[i].length >= 2) {
+        // 2음절 이상 NNP 단독(김철수 등)은 이미 한 토큰이므로 보호 불필요
+      }
+    }
 
     let out = '';
     let lastEnd = -1;
@@ -714,9 +725,10 @@ function kiwiSpaceFactory(kiwi) {
         else if (gapKept) sep = gapKept;             // 미지 문자 보존
         else if (attachToPrev(t.tag)) sep = '';
         else if (prev && prev.tag === 'XPN') sep = '';
+        else if (prev && isHangulClass(prev.tag) && t.tag === 'SN') sep = ' ';  // "지난15년" → "지난 15년"
         else if (!prev || !isHangulClass(prev.tag) || !isHangulClass(t.tag)) sep = origGap ? ' ' : '';
         else if (prev.tag === 'NR' && t.tag === 'NR') sep = origGap ? ' ' : '';
-        else if (!origGap && chunkHasNNP[chunkIds[ti]] && isNominal(prev.tag) && isNominal(t.tag)) sep = ''; // 인명·상호 보존
+        else if (!origGap && chunkProtect[chunkIds[ti]] && isNominal(prev.tag) && isNominal(t.tag)) sep = ''; // 인명·상호 보존
         else sep = ' ';
         out += sep + text.slice(Math.max(s, lastEnd), e);
       }
