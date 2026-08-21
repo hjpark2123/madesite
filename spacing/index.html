@@ -151,7 +151,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 8</b> — 체크 해제 시 원문 복원, -사 계열 단어 보호 추가</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 9</b> — -아/어지다 붙임 규칙 추가</div>
 </div>
 
 <script>
@@ -864,6 +864,8 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
       const pat = new RegExp('(?<![가-힣])' + w.split('').map(escCh).join(' ?') + TAIL_GUARD, 'g');
       out = out.replace(pat, w);
     }
+    // 관용 표현 오분석 보정 (해가 진다/뜬다 등)
+    out = out.replace(/해 가 (지|진|질|져|졌|뜨|뜬|뜰|떠|떴)/g, '해가 $1');
     return out;
   }
 
@@ -931,6 +933,7 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
         else if (attachToPrev(t.tag)) sep = '';
         else if (prev && prev.tag === 'XPN') sep = '';
         else if (!origGap && prev && prev.tag[0] === 'N' && t.str === '잇' && text[s] === '이') sep = ''; // 서술격 조사 '이었-'을 잇다(VV)로 오분석한 경우 보정: 명사에 붙임
+        else if (t.str === '지' && t.tag === 'VX' && prev && /[아어여해워와쳐려겨셔]/.test(text[prev.position + prev.length - 1] || '')) sep = ''; // '-아/어지다'는 붙여 씀 (더해진다, 중요해진다)
         else if (prev && isHangulClass(prev.tag) && t.tag === 'SN') sep = ' ';  // "지난15년" → "지난 15년"
         else if (!prev || !isHangulClass(prev.tag) || !isHangulClass(t.tag)) sep = origGap ? ' ' : '';
         else if (prev.tag === 'NR' && t.tag === 'NR') sep = origGap ? ' ' : '';
