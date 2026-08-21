@@ -138,7 +138,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <button class="btn ghost" id="copyText">교정 텍스트 복사</button>
 
     <div id="changeBox" class="hidden">
-      <h2 style="margin-top:22px">변경 내역</h2>\n      <p style="font-size:12.5px;color:var(--sub);margin-bottom:8px">통일성 항목은 기본으로 자동 적용됩니다. 다르게 고치고 싶으면 입력창에 원하는 형태를 쓰고 [반영]을 누르세요 — 문서 전체가 그 형태로 통일되고 다운로드에도 반영됩니다. "자동" 체크를 다시 켜면 자동 통일로 돌아갑니다.</p>
+      <h2 style="margin-top:22px">변경 내역</h2>\n      <p style="font-size:12.5px;color:var(--sub);margin-bottom:8px">통일성 항목은 기본으로 자동 적용됩니다. 다르게 고치고 싶으면 입력창에 원하는 형태를 쓰고 [반영]을 누르세요 — 문서 전체가 그 형태로 통일되고 다운로드에도 반영됩니다. "자동" 체크만 끄면 그 단어는 원문 그대로(바꾸기 전 상태로) 되돌아갑니다.</p>
       <div class="scroll"><table id="changeTable">
         <thead><tr><th style="width:56px">단락</th><th style="width:170px">규칙</th><th>수정 전</th><th>수정 후</th></tr></thead>
         <tbody></tbody>
@@ -151,7 +151,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 7</b> — 단어 보호(귀속·녹음물 등)·사용자 단어 등록 포함</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 8</b> — 체크 해제 시 원문 복원, -사 계열 단어 보호 추가</div>
 </div>
 
 <script>
@@ -441,7 +441,24 @@ const SpacingEngine = (function () {
     return { paragraphs: applied, stage1: corrected, changes, unifications };
   }
 
-  return { correctDocument, correctParagraph, applyUnifications };
+  // 체크 해제된 통일 항목: 해당 단어를 각 위치별 '원문 그대로'의 띄어쓰기로 되돌림
+  // (전수 교정 단계에서 바뀐 것까지 원상복구)
+  function revertUnification(paragraphs, originals, u) {
+    const srcPat = '(?<![가-힣])(' + esc(u.a) + ' ' + esc(u.b) + '|' + esc(u.merged) + ')' + JOSA_GUARD;
+    return paragraphs.map((p, i) => {
+      const orig = originals[i] || '';
+      const forms = [];
+      const re1 = new RegExp(srcPat, 'g');
+      let m;
+      while ((m = re1.exec(orig)) !== null) forms.push(m[1]);
+      if (!forms.length) return p;
+      let k = 0;
+      const re2 = new RegExp(srcPat, 'g');
+      return p.replace(re2, mm => (k < forms.length ? forms[k++] : mm));
+    });
+  }
+
+  return { correctDocument, correctParagraph, applyUnifications, revertUnification };
 })();
 
 
@@ -668,14 +685,16 @@ const SpacingEngine = (function () {
   // 체크 상태·직접 수정 내용에 따라 통일성 교정을 다시 적용 (결과·다운로드에 즉시 반영)
   function recomputeUnify() {
     if (!lastResult || !lastResult.stage1) return;
-    const selected = [];
+    const selected = [], reverts = [];
     document.querySelectorAll('#changeTable input.unify-toggle').forEach(cb => {
       const u = lastResult.unifications[+cb.dataset.idx];
-      if (cb.checked) { u.customText = null; selected.push(u); } // 자동 통일
-      else if (u.customText != null) selected.push(u);            // 사용자가 지정한 형태로 통일
-      // 체크 해제 + 아직 반영 전 → 이 항목은 원문 그대로 둠
+      if (cb.checked) { u.customText = null; selected.push(u); }  // 자동 통일
+      else if (u.customText != null) selected.push(u);             // 사용자가 지정한 형태로 통일
+      else reverts.push(u);                                        // 체크 해제 → 원문 그대로 복원
     });
-    lastResult.paragraphs = SpacingEngine.applyUnifications(lastResult.stage1, selected);
+    let paras = SpacingEngine.applyUnifications(lastResult.stage1, selected);
+    for (const u of reverts) paras = SpacingEngine.revertUnification(paras, lastResult.originalParagraphs, u);
+    lastResult.paragraphs = paras;
     renderPreview(lastResult);
   }
 
@@ -833,7 +852,8 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
   // 절대 쪼개면 안 되는 단어(내장 + 사용자 등록)
   // 교정 후, 이 단어들 사이에 끼어든 공백을 되돌린다 (원래 띄어 쓰여 있던 것도 붙임)
   const DEFAULT_PROTECT = ['귀속', '녹음물', '저작물', '창작물', '결과물', '출판물', '인쇄물',
-    '음원', '정산금', '계약금', '선급금', '위약금', '저작권료', '수수료'];
+    '음원', '정산금', '계약금', '선급금', '위약금', '저작권료', '수수료',
+    '유통사', '제작사', '기획사', '소속사', '배급사', '음반사', '제작진', '창작자', '저작자'];
   const escCh = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // 뒤에 조사·문장부호·끝이 올 때만 결합 (물감처럼 다른 단어의 시작이면 결합하지 않음)
   const TAIL_GUARD = '(?=$|[^가-힣]|[은는이가을를과와도의로만에처부까조마밖라보된되됨될시하해했])';
