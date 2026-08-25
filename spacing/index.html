@@ -90,7 +90,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
   <div class="card" style="padding:16px 22px">
     <b style="font-size:13.5px">붙여 쓰는 단어 등록</b>
-    <span style="font-size:12.5px;color:var(--sub);margin-left:8px">교정기가 자꾸 쪼개는 단어(예: 귀속, 녹음물)를 등록하면 항상 한 단어로 유지됩니다. 등록 내용은 이 브라우저에 저장돼요.</span>
+    <span style="font-size:12.5px;color:var(--sub);margin-left:8px">교정기가 자꾸 쪼개는 단어(예: 귀속, 녹음물)를 등록하면 항상 한 단어로 유지됩니다. 동사는 어간으로 등록하면 활용형까지 적용돼요(예: "만들어지" → 만들어진·만들어졌·만들어질). 등록 내용은 이 브라우저에 저장됩니다.</span>
     <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
       <input type="text" id="uwInput" placeholder="단어 입력 (예: 귀속)"
         style="border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:14px;width:180px">
@@ -151,7 +151,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 11</b> — 단어 보호·복원 경계 확장(유통사들·유통사인 등)</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 12</b> — 단어 등록이 활용형까지 인식 (예: 만들어지 → 만들어진·만들어졌)</div>
 </div>
 
 <script>
@@ -857,12 +857,22 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
   const escCh = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // 뒤에 조사·문장부호·끝이 올 때만 결합 (물감처럼 다른 단어의 시작이면 결합하지 않음)
   const TAIL_GUARD = '(?=$|[^가-힣]|[은는이가을를과와도의로만에처부까조마밖라보된되됨될시하해했들였서일인며랑나냐요든])';
+  // 용언 어간으로 등록하면 활용형까지 함께 결합 (예: '만들어지' → 만들어진/만들어졌/만들어질)
+  const CONJ_FAMILY = { '지': '지진질져졌짐', '하': '하한할해했합함', '되': '되된될됐돼됨',
+    '보': '보본볼봐봤봄', '주': '주준줄줘줬줌', '내': '내낸낼냈냄', '두': '두둔둘뒀둠', '놓': '놓놨' };
   function repairProtected(out) {
     const words = [...new Set([...DEFAULT_PROTECT, ...((getProtectedWords && getProtectedWords()) || [])])]
       .filter(w => w && w.length >= 2).sort((x, y) => y.length - x.length);
     for (const w of words) {
-      const pat = new RegExp('(?<![가-힣])' + w.split('').map(escCh).join(' ?') + TAIL_GUARD, 'g');
-      out = out.replace(pat, w);
+      const fam = CONJ_FAMILY[w[w.length - 1]];
+      if (fam) {
+        const stem = w.slice(0, -1);
+        const pat = new RegExp('(?<![가-힣])' + stem.split('').map(escCh).join(' ?') + ' ?([' + fam + '])', 'g');
+        out = out.replace(pat, (m, last) => stem + last);
+      } else {
+        const pat = new RegExp('(?<![가-힣])' + w.split('').map(escCh).join(' ?') + TAIL_GUARD, 'g');
+        out = out.replace(pat, w);
+      }
     }
     // 관용 표현 오분석 보정 (해가 진다/뜬다 등)
     out = out.replace(/해 가 (지|진|질|져|졌|뜨|뜬|뜰|떠|떴)/g, '해가 $1');
