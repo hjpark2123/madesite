@@ -151,7 +151,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 10</b> — 외래어 나열 띄어쓰기 개선</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 11</b> — 단어 보호·복원 경계 확장(유통사들·유통사인 등)</div>
 </div>
 
 <script>
@@ -357,7 +357,7 @@ const SpacingEngine = (function () {
   // 뜻이 달라 통일 대상에서 제외하는 형태
   const UNIFY_BLOCKLIST = new Set(['한번', '안되', '안된다', '못하', '잘하', '잘못', '이제야']);
 
-  const JOSA_GUARD = '(?=$|[^가-힣]|[은는이가을를에의도만과와로]|으로|에서|에게|부터|까지|처럼|보다|라도|마다|밖에|조차|마저)';
+  const JOSA_GUARD = '(?=$|[^가-힣]|[은는이가을를에의도만과와로들였서일인며랑나냐요든]|으로|에서|에게|부터|까지|처럼|보다|라도|마다|밖에|조차|마저)';
 
   // 통일 후보 계산 (적용은 별도 함수 — 항목별로 켜고 끌 수 있게)
   function computeUnifications(paragraphs) {
@@ -856,7 +856,7 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
     '유통사', '제작사', '기획사', '소속사', '배급사', '음반사', '제작진', '창작자', '저작자'];
   const escCh = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // 뒤에 조사·문장부호·끝이 올 때만 결합 (물감처럼 다른 단어의 시작이면 결합하지 않음)
-  const TAIL_GUARD = '(?=$|[^가-힣]|[은는이가을를과와도의로만에처부까조마밖라보된되됨될시하해했])';
+  const TAIL_GUARD = '(?=$|[^가-힣]|[은는이가을를과와도의로만에처부까조마밖라보된되됨될시하해했들였서일인며랑나냐요든])';
   function repairProtected(out) {
     const words = [...new Set([...DEFAULT_PROTECT, ...((getProtectedWords && getProtectedWords()) || [])])]
       .filter(w => w && w.length >= 2).sort((x, y) => y.length - x.length);
