@@ -151,7 +151,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 9</b> — -아/어지다 붙임 규칙 추가</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 10</b> — 외래어 나열 띄어쓰기 개선</div>
 </div>
 
 <script>
@@ -902,15 +902,17 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
     }
     // 보호 대상: NNP가 있으면서 1음절 명사류 조각이 섞인 덩어리(인명·상호가 쪼개진 흔적)
     // "한국/엔터테인먼트/시장"처럼 온전한 단어들로만 이루어진 덩어리는 원칙대로 띄움
+    // 1음절 명사류 조각이 2개 이상 섞인 경우만 보호 (박/현/진, 빌/드 등 쪼개진 인명·상호)
+    // 긴 외래어 나열(글로벌 레코딩 아티스트 오브 더 이어 등)은 원칙대로 띄움
     const chunkProtect = {};
+    const fragCount = {};
     for (let i = 0; i < toks.length; i++) {
       const cid2 = chunkIds[i];
       if (!chunkHasNNP[cid2]) continue;
-      if (toks[i].length === 1 && ['NNP','NNG','MM','XR'].includes(toks[i].tag)) chunkProtect[cid2] = true;
-      if (toks[i].tag === 'NNP' && toks[i].length >= 2) {
-        // 2음절 이상 NNP 단독(김철수 등)은 이미 한 토큰이므로 보호 불필요
-      }
+      if (toks[i].length === 1 && ['NNP','NNG','MM','XR'].includes(toks[i].tag))
+        fragCount[cid2] = (fragCount[cid2] || 0) + 1;
     }
+    for (const c in fragCount) if (fragCount[c] >= 2) chunkProtect[c] = true;
 
     let out = '';
     let lastEnd = -1;
