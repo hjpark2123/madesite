@@ -132,10 +132,20 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <h2>교정 결과</h2>
     <div class="stat">
       <span class="pill" id="statChanges"></span>
+      <span class="pill" id="statWords"></span>
       <span class="pill" id="statUnify"></span>
     </div>
     <button class="btn" id="download">교정된 워드 파일 다운로드</button>
     <button class="btn ghost" id="copyText">교정 텍스트 복사</button>
+
+    <div id="wordBox" class="hidden">
+      <h2 style="margin-top:22px">낱말 교정 목록</h2>
+      <p style="font-size:12.5px;color:var(--sub);margin-bottom:8px">문서 전체에서 띄어쓰기가 바뀐 낱말(구)을 모두 보여줍니다. 잘못 고쳐진 단어가 있으면 위의 "붙여 쓰는 단어 등록"에 추가하세요.</p>
+      <div class="scroll"><table id="wordTable">
+        <thead><tr><th style="width:56px">단락</th><th>수정 전</th><th>수정 후</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
 
     <div id="changeBox" class="hidden">
       <h2 style="margin-top:22px">변경 내역</h2>\n      <p style="font-size:12.5px;color:var(--sub);margin-bottom:8px">통일성 항목은 기본으로 자동 적용됩니다. 다르게 고치고 싶으면 입력창에 원하는 형태를 쓰고 [반영]을 누르세요 — 문서 전체가 그 형태로 통일되고 다운로드에도 반영됩니다. "자동" 체크만 끄면 그 단어는 원문 그대로(바꾸기 전 상태로) 되돌아갑니다.</p>
@@ -151,7 +161,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 12</b> — 단어 등록이 활용형까지 인식 (예: 만들어지 → 만들어진·만들어졌)</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 13</b> — 낱말 교정 목록 추가, 3음절 인명 결합(이현송 등)</div>
 </div>
 
 <script>
@@ -698,8 +708,51 @@ const SpacingEngine = (function () {
     renderPreview(lastResult);
   }
 
+  // 공백 변화만 있는 두 문장에서, 띄어쓰기가 바뀐 낱말(구) 구간만 추출
+  function wordDiffs(orig, corr) {
+    const parse = s => { const a = []; let sp = false; for (const ch of s) { if (ch === ' ') { sp = true; continue; } a.push({ ch, sp }); sp = false; } return a; };
+    const A = parse(orig), B = parse(corr);
+    if (A.length !== B.length || A.some((x, i) => x.ch !== B[i].ch)) return null; // ^·- 삭제 등 문자 변화 → 단락 단위로만
+    const changed = [];
+    for (let i = 1; i < A.length; i++) if (A[i].sp !== B[i].sp) changed.push(i);
+    if (!changed.length) return [];
+    const agreed = i => A[i].sp && B[i].sp;
+    const regions = [];
+    for (const i of changed) {
+      let l = i; while (l > 0 && !agreed(l)) l--;
+      let rr = i + 1; while (rr < A.length && !agreed(rr)) rr++;
+      if (regions.length && l <= regions[regions.length - 1][1]) regions[regions.length - 1][1] = Math.max(regions[regions.length - 1][1], rr);
+      else regions.push([l, rr]);
+    }
+    const build = (arr, l, rr) => { let s = ''; for (let k = l; k < rr; k++) { if (k > l && arr[k].sp) s += ' '; s += arr[k].ch; } return s; };
+    return regions.map(([l, rr]) => ({ before: build(A, l, rr), after: build(B, l, rr) }));
+  }
+
+  function renderWordTable(r) {
+    const tbody = $('wordTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    let n = 0;
+    r.paragraphs.forEach((p, i) => {
+      const o = r.originalParagraphs[i];
+      if (p === o) return;
+      const diffs = wordDiffs(o, p);
+      const rows = diffs === null ? [{ before: o, after: p }] : diffs;
+      for (const d of rows) {
+        if (n >= 400) break;
+        n++;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i + 1}</td><td><span class="before">${escapeHtml(d.before)}</span></td><td><span class="after">${escapeHtml(d.after)}</span></td>`;
+        tbody.appendChild(tr);
+      }
+    });
+    $('wordBox').classList.toggle('hidden', n === 0);
+    return n;
+  }
+
   function renderPreview(r) {
     $('result').classList.remove('hidden');
+    const wordCount = renderWordTable(r);
+    $('statWords').textContent = `낱말 교정 ${wordCount}건`;
     const changedParas = r.paragraphs.filter((p, i) => p !== r.originalParagraphs[i]).length;
     $('statChanges').textContent = window.__spacer
       ? `전수 교정: ${changedParas}개 단락 수정`
@@ -923,6 +976,11 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
         fragCount[cid2] = (fragCount[cid2] || 0) + 1;
     }
     for (const c in fragCount) if (fragCount[c] >= 2) chunkProtect[c] = true;
+    // 덩어리 시작 위치 (인명은 덩어리 맨 앞에 옴)
+    const chunkStart = {};
+    for (let i = 0; i < toks.length; i++) {
+      if (!(chunkIds[i] in chunkStart)) chunkStart[chunkIds[i]] = toks[i].position;
+    }
 
     let out = '';
     let lastEnd = -1;
@@ -944,6 +1002,9 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
         else if (gapKept) sep = gapKept;             // 미지 문자 보존
         else if (attachToPrev(t.tag)) sep = '';
         else if (prev && prev.tag === 'XPN') sep = '';
+        else if (!origGap && prev.position === chunkStart[chunkIds[ti]] && isNominal(prev.tag) && isNominal(t.tag) &&
+                 ((prev.tag === 'NNP' && prev.length === 2 && t.length === 1) ||
+                  (prev.tag === 'NNP' && prev.length === 1 && t.tag === 'NNP' && t.length === 2))) sep = ''; // 덩어리 맨 앞의 3음절 인명(이현+송, 김+현진) 결합
         else if (!origGap && prev && prev.tag[0] === 'N' && t.str === '잇' && text[s] === '이') sep = ''; // 서술격 조사 '이었-'을 잇다(VV)로 오분석한 경우 보정: 명사에 붙임
         else if (t.str === '지' && t.tag === 'VX' && prev && /[아어여해워와쳐려겨셔]/.test(text[prev.position + prev.length - 1] || '')) sep = ''; // '-아/어지다'는 붙여 씀 (더해진다, 중요해진다)
         else if (prev && isHangulClass(prev.tag) && t.tag === 'SN') sep = ' ';  // "지난15년" → "지난 15년"
