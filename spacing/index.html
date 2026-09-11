@@ -80,9 +80,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   <div class="card rules">
     <b>적용 원칙</b><br>
     · 보조용언은 <b>띄어 쓰는 것</b>을 원칙으로 합니다 — 단, 국립국어원 사전에 등재된 합성용언(물어보다, 잃어버리다, 털어놓다 등 80개)은 붙임을 유지합니다<br>
-    · <b>^</b> 표시는 띄어 쓰고, <b>-</b> 표시는 붙여 씁니다<br>
+    · <b>^</b> 표시는 띄어 씁니다 (하이픈 <b>-</b>은 건드리지 않고 그대로 둡니다)<br>
     · 의존명사(수, 것, 때, 때문, 만큼, 뿐)는 띄어 씁니다<br>
-    · 글 전체에서 같은 단어의 띄어쓰기는 <b>다수 형태로 통일</b>하며, 변경 내역에서 항목별로 직접 수정할 수 있습니다<br>
+    · 같은 단어의 띄어쓰기가 섞여 있으면 <b>표준국어대사전 기준으로 통일</b>하며, 변경 내역에서 항목별로 끄거나 직접 수정할 수 있습니다<br>
     · 오픈소스 형태소 분석기 <b>Kiwi</b>로 문서 전체를 낱말 단위로 재분석해, 붙어 쓴 문장 전체를 교정합니다
       (조사·어미·접미사 붙임, 의존명사·단위명사 띄움, 합성어(지난주 등)·인명은 유지)<br>
     · 워드 파일은 <b>이미지·표·도표·각주 위치와 글자 서식을 그대로 보존</b>하며, 각주·미주·메모 안의 글도 함께 교정합니다
@@ -161,7 +161,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 13</b> — 낱말 교정 목록 추가, 3음절 인명 결합(이현송 등)</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 14</b> — 하이픈 보존, 표준국어대사전 기준 통일</div>
 </div>
 
 <script>
@@ -342,7 +342,6 @@ const SpacingEngine = (function () {
     const log = [];
     let out = text;
     out = ruleCaret(out, log);
-    out = ruleHyphen(out, log);
     if (spacer) {
       out = spacer(out);
     } else {
@@ -370,7 +369,7 @@ const SpacingEngine = (function () {
   const JOSA_GUARD = '(?=$|[^가-힣]|[은는이가을를에의도만과와로들였서일인며랑나냐요든]|으로|에서|에게|부터|까지|처럼|보다|라도|마다|밖에|조차|마저)';
 
   // 통일 후보 계산 (적용은 별도 함수 — 항목별로 켜고 끌 수 있게)
-  function computeUnifications(paragraphs) {
+  function computeUnifications(paragraphs, spacer) {
     const wordCount = new Map();
     const pairCount = new Map();
     const tokenize = p => p.split(/[^가-힣]+/).filter(Boolean);
@@ -404,14 +403,22 @@ const SpacingEngine = (function () {
       const mc = wordCount.get(merged) || 0;
       if (mc === 0) continue;
       seen.add(merged);
-      const tie = mc === pc;
-      const kind = mc > pc ? 'merge' : 'split';
+      // 표준국어대사전 기준: 전수 교정(사전 기반 분석)을 통과하고도 붙은 채 남은 형태는
+      // 사전이 한 단어로 인정한 것이므로, 혼용 시 그 붙임 형태로 통일한다
+      let kind, basis;
+      if (spacer) {
+        kind = 'merge';
+        basis = '사전 기준 한 단어로 인정 → 붙임으로 통일';
+      } else {
+        kind = mc > pc ? 'merge' : 'split';
+        basis = '다수 형태로 통일';
+      }
       unifications.push({
-        kind, a, b, merged, mc, pc, tie,
+        kind, a, b, merged, mc, pc,
         rule: kind === 'merge' ? '통일(붙임)' : '통일(띄움)',
         before: kind === 'merge' ? a + ' ' + b : merged,
         after: kind === 'merge' ? merged : a + ' ' + b,
-        note: (kind === 'merge' ? `붙임 ${mc}회 vs 띄움 ${pc}회` : `띄움 ${pc}회 vs 붙임 ${mc}회`) + (tie ? ' (동수 → 띄어쓰기 원칙 적용)' : ' → 다수 형태로 통일')
+        note: basis + ` (문서에 붙임 ${mc}회·띄움 ${pc}회 혼용)`
       });
     }
     return unifications;
@@ -446,7 +453,7 @@ const SpacingEngine = (function () {
       for (const c of r.changes) changes.push({ ...c, para: i + 1 });
       return r.text;
     });
-    const unifications = computeUnifications(corrected);
+    const unifications = computeUnifications(corrected, spacer);
     const applied = applyUnifications(corrected, unifications);
     return { paragraphs: applied, stage1: corrected, changes, unifications };
   }
