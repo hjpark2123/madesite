@@ -82,7 +82,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     · 보조용언은 <b>띄어 쓰는 것</b>을 원칙으로 합니다 — 단, 국립국어원 사전에 등재된 합성용언(물어보다, 잃어버리다, 털어놓다 등 80개)은 붙임을 유지합니다<br>
     · <b>^</b> 표시는 띄어 씁니다 (하이픈 <b>-</b>은 건드리지 않고 그대로 둡니다)<br>
     · 의존명사(수, 것, 때, 때문, 만큼, 뿐)는 띄어 씁니다<br>
-    · 같은 단어의 띄어쓰기가 섞여 있으면 <b>표준국어대사전 기준으로 통일</b>하며, 변경 내역에서 항목별로 끄거나 직접 수정할 수 있습니다<br>
+    · 같은 단어의 띄어쓰기가 섞여 있으면 <b>표준국어대사전 기준으로 통일</b>하며, 교정 목록에서 항목별로 끄거나 직접 수정할 수 있습니다<br>
     · 오픈소스 형태소 분석기 <b>Kiwi</b>로 문서 전체를 낱말 단위로 재분석해, 붙어 쓴 문장 전체를 교정합니다
       (조사·어미·접미사 붙임, 의존명사·단위명사 띄움, 합성어(지난주 등)·인명은 유지)<br>
     · 워드 파일은 <b>이미지·표·도표·각주 위치와 글자 서식을 그대로 보존</b>하며, 각주·미주·메모 안의 글도 함께 교정합니다
@@ -133,24 +133,19 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div class="stat">
       <span class="pill" id="statChanges"></span>
       <span class="pill" id="statWords"></span>
-      <span class="pill" id="statUnify"></span>
     </div>
     <button class="btn" id="download">교정된 워드 파일 다운로드</button>
     <button class="btn ghost" id="copyText">교정 텍스트 복사</button>
 
     <div id="wordBox" class="hidden">
-      <h2 style="margin-top:22px">낱말 교정 목록</h2>
-      <p style="font-size:12.5px;color:var(--sub);margin-bottom:8px">문서 전체에서 띄어쓰기가 바뀐 낱말(구)을 모두 보여줍니다. 잘못 고쳐진 단어가 있으면 위의 "붙여 쓰는 단어 등록"에 추가하세요.</p>
-      <div class="scroll"><table id="wordTable">
-        <thead><tr><th style="width:56px">단락</th><th>수정 전</th><th>수정 후</th></tr></thead>
-        <tbody></tbody>
-      </table></div>
-    </div>
-
-    <div id="changeBox" class="hidden">
-      <h2 style="margin-top:22px">변경 내역</h2>\n      <p style="font-size:12.5px;color:var(--sub);margin-bottom:8px">통일성 항목은 기본으로 자동 적용됩니다. 다르게 고치고 싶으면 입력창에 원하는 형태를 쓰고 [반영]을 누르세요 — 문서 전체가 그 형태로 통일되고 다운로드에도 반영됩니다. "자동" 체크만 끄면 그 단어는 원문 그대로(바꾸기 전 상태로) 되돌아갑니다.</p>
-      <div class="scroll"><table id="changeTable">
-        <thead><tr><th style="width:56px">단락</th><th style="width:170px">규칙</th><th>수정 전</th><th>수정 후</th></tr></thead>
+      <h2 style="margin-top:22px">교정 목록</h2>
+      <p style="font-size:12.5px;color:var(--sub);margin-bottom:8px">
+        띄어쓰기가 바뀐 낱말을 모두 보여줍니다. 항목마다 직접 조정할 수 있어요 —
+        <b>"적용" 체크를 끄면</b> 그 낱말은 문서 전체에서 수정 전 형태로 돌아가고,
+        <b>입력창에 쓰고 [반영]</b>하면 그 형태로 문서 전체가 통일됩니다. 모두 다운로드에 즉시 반영돼요.
+        자주 쪼개지는 단어는 위의 "붙여 쓰는 단어 등록"에 추가하면 다음부터 자동으로 유지됩니다.</p>
+      <div class="scroll" style="max-height:480px"><table id="wordTable">
+        <thead><tr><th style="width:64px">적용</th><th style="width:90px">단락</th><th>수정 전</th><th>수정 후 · 직접 수정</th></tr></thead>
         <tbody></tbody>
       </table></div>
     </div>
@@ -161,7 +156,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 15</b> — 체크 끄면 반대 형태로 전체 통일</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 16</b> — 교정 목록 통합: 모든 항목 직접 수정 가능</div>
 </div>
 
 <script>
@@ -627,101 +622,24 @@ const SpacingEngine = (function () {
   function finish(paragraphs) {
     const r = SpacingEngine.correctDocument(paragraphs, window.__spacer || null);
     r.originalParagraphs = paragraphs;
+    r.autoParagraphs = r.paragraphs.slice();
+    r.editItems = buildEditItems(r);
     lastResult = r;
     render(r);
   }
   window.__rerun = () => { if (lastResult) finish(lastResult.originalParagraphs); };
 
   function render(r) {
-    renderTable(r);
+    renderEditTable(r);
     renderPreview(r);
     $('result').scrollIntoView({ behavior: 'smooth' });
-  }
-
-  function renderTable(r) {
-    const tbody = $('changeTable').querySelector('tbody');
-    tbody.innerHTML = '';
-    for (const c of r.changes) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${c.para}</td><td>${escapeHtml(c.rule)}</td>
-        <td><span class="before">${escapeHtml(c.before)}</span></td>
-        <td><span class="after">${escapeHtml(c.after)}</span></td>`;
-      tbody.appendChild(tr);
-    }
-    r.unifications.forEach((u, idx) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td><label style="display:flex;align-items:center;gap:6px;cursor:pointer" title="체크를 켜면 자동 통일로 돌아갑니다">
-          <input type="checkbox" class="unify-toggle" data-idx="${idx}" checked>자동</label></td>
-        <td>${escapeHtml(u.rule + ' · ' + u.note)}</td>
-        <td><span class="before">${escapeHtml(u.before)}</span></td>
-        <td><span class="after" data-idx="${idx}">${escapeHtml(u.after)}</span>
-          <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
-            <input type="text" class="unify-custom" data-idx="${idx}" value="" placeholder="직접 수정하려면 입력"
-              style="border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13.5px;width:160px">
-            <button class="unify-apply" data-idx="${idx}"
-              style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">반영</button>
-          </div>
-        </td>`;
-      tbody.appendChild(tr);
-    });
-    tbody.querySelectorAll('input.unify-toggle').forEach(cb => {
-      cb.addEventListener('change', () => {
-        const idx = +cb.dataset.idx;
-        const u = lastResult.unifications[idx];
-        const afterSpan = tbody.querySelector(`span.after[data-idx="${idx}"]`);
-        if (cb.checked) {           // 제안 형태로 복귀
-          u.customText = null;
-          tbody.querySelector(`input.unify-custom[data-idx="${idx}"]`).value = '';
-          afterSpan.textContent = u.after;
-        } else if (u.customText == null) {
-          afterSpan.textContent = u.before; // 반대 형태로 통일됨을 표시
-        }
-        recomputeUnify();
-      });
-    });
-    const applyCustom = idx => {
-      const u = lastResult.unifications[idx];
-      const input = tbody.querySelector(`input.unify-custom[data-idx="${idx}"]`);
-      const btn = tbody.querySelector(`button.unify-apply[data-idx="${idx}"]`);
-      const val = input.value.trim();
-      if (!val) return;
-      u.customText = val;
-      tbody.querySelector(`input.unify-toggle[data-idx="${idx}"]`).checked = false; // 직접 수정됨 표시
-      const afterSpan = tbody.querySelector(`span.after[data-idx="${idx}"]`);
-      afterSpan.textContent = val;
-      btn.textContent = '반영됨!';
-      setTimeout(() => { btn.textContent = '반영'; }, 1200);
-      recomputeUnify();
-    };
-    tbody.querySelectorAll('button.unify-apply').forEach(btn => {
-      btn.addEventListener('click', () => applyCustom(+btn.dataset.idx));
-    });
-    tbody.querySelectorAll('input.unify-custom').forEach(input => {
-      input.addEventListener('keydown', e => { if (e.key === 'Enter') applyCustom(+input.dataset.idx); });
-    });
-    $('changeBox').classList.toggle('hidden', r.changes.length + r.unifications.length === 0);
-  }
-
-  // 체크 상태·직접 수정 내용에 따라 통일성 교정을 다시 적용 (결과·다운로드에 즉시 반영)
-  // 체크 켬 = 제안 형태로 전체 통일, 체크 끔 = 반대 형태로 전체 통일, 반영 = 입력한 형태로 전체 통일
-  function recomputeUnify() {
-    if (!lastResult || !lastResult.stage1) return;
-    const selected = [];
-    document.querySelectorAll('#changeTable input.unify-toggle').forEach(cb => {
-      const u = lastResult.unifications[+cb.dataset.idx];
-      if (cb.checked) { u.customText = null; selected.push(u); }                 // 제안 형태로 통일
-      else if (u.customText != null) selected.push(u);                            // 직접 입력한 형태로 통일
-      else selected.push({ ...u, kind: u.kind === 'merge' ? 'split' : 'merge', customText: null }); // 반대 형태로 통일
-    });
-    lastResult.paragraphs = SpacingEngine.applyUnifications(lastResult.stage1, selected);
-    renderPreview(lastResult);
   }
 
   // 공백 변화만 있는 두 문장에서, 띄어쓰기가 바뀐 낱말(구) 구간만 추출
   function wordDiffs(orig, corr) {
     const parse = s => { const a = []; let sp = false; for (const ch of s) { if (ch === ' ') { sp = true; continue; } a.push({ ch, sp }); sp = false; } return a; };
     const A = parse(orig), B = parse(corr);
-    if (A.length !== B.length || A.some((x, i) => x.ch !== B[i].ch)) return null; // ^·- 삭제 등 문자 변화 → 단락 단위로만
+    if (A.length !== B.length || A.some((x, i) => x.ch !== B[i].ch)) return null; // ^ 삭제 등 문자 변화
     const changed = [];
     for (let i = 1; i < A.length; i++) if (A[i].sp !== B[i].sp) changed.push(i);
     if (!changed.length) return [];
@@ -730,45 +648,105 @@ const SpacingEngine = (function () {
     for (const i of changed) {
       let l = i; while (l > 0 && !agreed(l)) l--;
       let rr = i + 1; while (rr < A.length && !agreed(rr)) rr++;
-      if (regions.length && l <= regions[regions.length - 1][1]) regions[regions.length - 1][1] = Math.max(regions[regions.length - 1][1], rr);
+      if (regions.length && l < regions[regions.length - 1][1]) regions[regions.length - 1][1] = Math.max(regions[regions.length - 1][1], rr);
       else regions.push([l, rr]);
     }
     const build = (arr, l, rr) => { let s = ''; for (let k = l; k < rr; k++) { if (k > l && arr[k].sp) s += ' '; s += arr[k].ch; } return s; };
     return regions.map(([l, rr]) => ({ before: build(A, l, rr), after: build(B, l, rr) }));
   }
 
-  function renderWordTable(r) {
-    const tbody = $('wordTable').querySelector('tbody');
-    tbody.innerHTML = '';
-    let n = 0;
-    r.paragraphs.forEach((p, i) => {
+  // 바뀐 낱말들을 (수정 전→수정 후) 단위로 묶어 편집 항목 생성
+  function buildEditItems(r) {
+    const map = new Map();
+    r.autoParagraphs.forEach((p, i) => {
       const o = r.originalParagraphs[i];
       if (p === o) return;
       const diffs = wordDiffs(o, p);
-      const rows = diffs === null ? [{ before: o, after: p }] : diffs;
-      for (const d of rows) {
-        if (n >= 400) break;
-        n++;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${i + 1}</td><td><span class="before">${escapeHtml(d.before)}</span></td><td><span class="after">${escapeHtml(d.after)}</span></td>`;
-        tbody.appendChild(tr);
+      if (diffs === null) return;
+      for (const d of diffs) {
+        const key = d.before + '\u0000' + d.after;
+        if (!map.has(key)) map.set(key, { before: d.before, after: d.after, paras: [], mode: 'auto', customText: null });
+        map.get(key).paras.push(i + 1);
       }
     });
-    $('wordBox').classList.toggle('hidden', n === 0);
-    return n;
+    return [...map.values()];
+  }
+
+  const boundedRe = s => new RegExp('(?<=^|[ ])' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=[ ]|$)', 'g');
+
+  // 항목 상태 반영: 체크 끔 = 수정 전 형태로 문서 전체 통일, 반영 = 입력한 형태로 통일
+  function recomputeEdits() {
+    if (!lastResult) return;
+    let paras = lastResult.autoParagraphs.slice();
+    for (const it of lastResult.editItems) {
+      if (it.mode === 'auto' && it.customText == null) continue;
+      const target = it.customText != null ? it.customText : it.before;
+      const reA = boundedRe(it.after), reB = boundedRe(it.before);
+      paras = paras.map(p => p.replace(reA, target).replace(reB, target));
+    }
+    lastResult.paragraphs = paras;
+    renderPreview(lastResult);
+  }
+
+  function renderEditTable(r) {
+    const tbody = $('wordTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    r.editItems.slice(0, 400).forEach((it, idx) => {
+      const paraLabel = it.paras.length > 3 ? `${it.paras.slice(0, 3).join('·')} 외 ${it.paras.length - 3}` : it.paras.join('·');
+      const shown = it.customText != null ? it.customText : (it.mode === 'auto' ? it.after : it.before);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td><label style="display:flex;align-items:center;gap:6px;cursor:pointer" title="끄면 이 낱말은 수정 전 형태로 돌아갑니다">
+          <input type="checkbox" class="edit-toggle" data-idx="${idx}" ${it.mode === 'auto' ? 'checked' : ''}>적용</label></td>
+        <td>${escapeHtml(paraLabel)}</td>
+        <td><span class="before">${escapeHtml(it.before)}</span></td>
+        <td><span class="after" data-idx="${idx}">${escapeHtml(shown)}</span>
+          <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
+            <input type="text" class="edit-custom" data-idx="${idx}" value="" placeholder="직접 수정하려면 입력"
+              style="border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13.5px;width:150px">
+            <button class="edit-apply" data-idx="${idx}"
+              style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">반영</button>
+          </div>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('input.edit-toggle').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const idx = +cb.dataset.idx;
+        const it = lastResult.editItems[idx];
+        it.mode = cb.checked ? 'auto' : 'off';
+        if (cb.checked) { it.customText = null; tbody.querySelector(`input.edit-custom[data-idx="${idx}"]`).value = ''; }
+        tbody.querySelector(`span.after[data-idx="${idx}"]`).textContent =
+          it.customText != null ? it.customText : (cb.checked ? it.after : it.before);
+        recomputeEdits();
+      });
+    });
+    const applyCustom = idx => {
+      const it = lastResult.editItems[idx];
+      const input = tbody.querySelector(`input.edit-custom[data-idx="${idx}"]`);
+      const btn = tbody.querySelector(`button.edit-apply[data-idx="${idx}"]`);
+      const val = input.value.trim();
+      if (!val) return;
+      it.customText = val;
+      it.mode = 'off';
+      tbody.querySelector(`input.edit-toggle[data-idx="${idx}"]`).checked = false;
+      tbody.querySelector(`span.after[data-idx="${idx}"]`).textContent = val;
+      btn.textContent = '반영됨!';
+      setTimeout(() => { btn.textContent = '반영'; }, 1200);
+      recomputeEdits();
+    };
+    tbody.querySelectorAll('button.edit-apply').forEach(btn => btn.addEventListener('click', () => applyCustom(+btn.dataset.idx)));
+    tbody.querySelectorAll('input.edit-custom').forEach(inp => inp.addEventListener('keydown', e => { if (e.key === 'Enter') applyCustom(+inp.dataset.idx); }));
+    $('wordBox').classList.toggle('hidden', r.editItems.length === 0);
   }
 
   function renderPreview(r) {
     $('result').classList.remove('hidden');
-    const wordCount = renderWordTable(r);
-    $('statWords').textContent = `낱말 교정 ${wordCount}건`;
     const changedParas = r.paragraphs.filter((p, i) => p !== r.originalParagraphs[i]).length;
     $('statChanges').textContent = window.__spacer
       ? `전수 교정: ${changedParas}개 단락 수정`
       : `규칙 교정 ${r.changes.length}건`;
-    const customU = r.unifications.filter(u => u.customText != null).length;
-    const autoU = document.querySelectorAll('#changeTable input.unify-toggle:checked').length;
-    $('statUnify').textContent = `통일성 교정 ${r.unifications.length}건 (자동 ${autoU} · 직접 수정 ${customU})`;
+    const adjusted = r.editItems.filter(it => it.mode !== 'auto' || it.customText != null).length;
+    $('statWords').textContent = `교정 항목 ${r.editItems.length}건 (직접 조정 ${adjusted}건)`;
 
     const list = $('paraList');
     list.innerHTML = '';
@@ -915,7 +893,9 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
   // 교정 후, 이 단어들 사이에 끼어든 공백을 되돌린다 (원래 띄어 쓰여 있던 것도 붙임)
   const DEFAULT_PROTECT = ['귀속', '녹음물', '저작물', '창작물', '결과물', '출판물', '인쇄물',
     '음원', '정산금', '계약금', '선급금', '위약금', '저작권료', '수수료',
-    '유통사', '제작사', '기획사', '소속사', '배급사', '음반사', '제작진', '창작자', '저작자', '레이어'];
+    '유통사', '제작사', '기획사', '소속사', '배급사', '음반사', '제작진', '창작자', '저작자', '레이어',
+    '브랜딩', '목업', '후보정', '글꼴', '가우시안', '파이어플라이', '변위맵', '갱신일', '썸네일',
+    '템플릿', '레이아웃', '그라데이션', '포토샵', '인디자인', '타이포그래피', '팔레트', '표시줄'];
   const escCh = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // 뒤에 조사·문장부호·끝이 올 때만 결합 (물감처럼 다른 단어의 시작이면 결합하지 않음)
   const TAIL_GUARD = '(?=$|[^가-힣]|[은는이가을를과와도의로만에처부까조마밖라보된되됨될시하해했들였서일인며랑나냐요든])';
