@@ -143,7 +143,15 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         띄어쓰기가 바뀐 낱말을 모두 보여줍니다. 항목마다 직접 조정할 수 있어요 —
         <b>"적용" 체크를 끄면</b> 그 낱말은 문서 전체에서 수정 전 형태로 돌아가고,
         <b>입력창에 쓰고 [반영]</b>하면 그 형태로 문서 전체가 통일됩니다. 모두 다운로드에 즉시 반영돼요.
-        같은 단어의 활용형 항목("체크박스"·"체크박스를" 등)은 하나만 조정해도 함께 적용됩니다.\n        자주 쪼개지는 단어는 위의 "붙여 쓰는 단어 등록"에 추가하면 다음부터 자동으로 유지됩니다.</p>
+        같은 단어의 활용형 항목("체크박스"·"체크박스를" 등)은 하나만 조정해도 함께 적용됩니다.
+        자주 쪼개지는 단어는 위의 "붙여 쓰는 단어 등록"에 추가하면 다음부터 자동으로 유지됩니다.</p>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+        <input type="text" id="wordSearch" placeholder="🔍 낱말 검색 (예: 업스케일)"
+          style="border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13.5px;width:220px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;white-space:nowrap">
+          <input type="checkbox" id="filterAdjusted">내가 조정한 항목만 보기</label>
+        <span id="searchCount" style="font-size:12.5px;color:var(--sub)"></span>
+      </div>
       <div class="scroll" style="max-height:480px"><table id="wordTable">
         <thead><tr><th style="width:64px">적용</th><th style="width:90px">단락</th><th>수정 전</th><th>수정 후 · 직접 수정</th></tr></thead>
         <tbody></tbody>
@@ -156,7 +164,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 20</b> — 빨라진다·느껴진다 붙임 인식, 활용형·괄호형까지 묶음 동시 적용</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 21</b> — 교정 목록 검색창·조정 항목 필터 추가</div>
 </div>
 
 <script>
@@ -757,12 +765,33 @@ const SpacingEngine = (function () {
       const g = lastResult.editItems[idx].group;
       return lastResult.editItems.map((m, k) => (m.group === g ? k : -1)).filter(k => k >= 0);
     }
+    // 검색·필터: 낱말 검색(공백 무시)과 "내가 조정한 항목만 보기"
+    function applyFilter() {
+      const qs = ($('wordSearch').value || '').replace(/\s/g, '');
+      const adjOnly = $('filterAdjusted').checked;
+      let shown = 0, total = 0;
+      tbody.querySelectorAll('tr').forEach(tr => {
+        const cb = tr.querySelector('input.edit-toggle');
+        if (!cb) return;
+        const it = lastResult.editItems[+cb.dataset.idx];
+        total++;
+        const hay = (it.before + it.after + (it.customText || '')).replace(/\s/g, '');
+        const vis = (!qs || hay.includes(qs)) && (!adjOnly || it.mode !== 'auto' || it.customText != null);
+        tr.style.display = vis ? '' : 'none';
+        if (vis) shown++;
+      });
+      $('searchCount').textContent = (qs || adjOnly) ? `${shown}건 표시 · 전체 ${total}건` : `전체 ${total}건`;
+    }
+    $('wordSearch').oninput = applyFilter;
+    $('filterAdjusted').onchange = applyFilter;
+    applyFilter();
     tbody.querySelectorAll('input.edit-toggle').forEach(cb => {
       cb.addEventListener('change', () => {
         const idx = +cb.dataset.idx;
         const mode = cb.checked ? 'auto' : 'off';
         for (const k of groupIndexes(idx)) syncItem(k, mode, null);
         recomputeEdits();
+        if ($('filterAdjusted').checked) applyFilter();
       });
     });
     const applyCustom = idx => {
@@ -784,6 +813,7 @@ const SpacingEngine = (function () {
       btn.textContent = '반영됨!';
       setTimeout(() => { btn.textContent = '반영'; }, 1200);
       recomputeEdits();
+      applyFilter();
     };
     tbody.querySelectorAll('button.edit-apply').forEach(btn => btn.addEventListener('click', () => applyCustom(+btn.dataset.idx)));
     tbody.querySelectorAll('input.edit-custom').forEach(inp => inp.addEventListener('keydown', e => { if (e.key === 'Enter') applyCustom(+inp.dataset.idx); }));
