@@ -79,7 +79,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
   <div class="card rules">
     <b>적용 원칙</b><br>
-    · 보조용언은 <b>띄어 쓰는 것</b>을 원칙으로 합니다 — 단, 국립국어원 사전에 등재된 합성용언(물어보다, 잃어버리다, 털어놓다 등 80개)은 붙임을 유지합니다<br>
+    · 보조용언은 <b>띄어 쓰는 것</b>을 원칙으로 하되(-내다 포함), <b>-하다·-지다는 붙여 씁니다</b> — 사전 등재 합성용언(물어보다, 잃어버리다 등)은 붙임 유지<br>
     · <b>^</b> 표시는 띄어 씁니다 (하이픈 <b>-</b>은 건드리지 않고 그대로 둡니다)<br>
     · 의존명사(수, 것, 때, 때문, 만큼, 뿐)는 띄어 씁니다<br>
     · 같은 단어의 띄어쓰기가 섞여 있으면 <b>표준국어대사전 기준으로 통일</b>하며, 교정 목록에서 항목별로 끄거나 직접 수정할 수 있습니다<br>
@@ -156,7 +156,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 17</b> — 같은 단어의 활용형 항목 일괄 적용</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 18</b> — -하다·-지다 붙임, -내다 띄움 원칙</div>
 </div>
 
 <script>
@@ -1017,7 +1017,9 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
                  ((prev.tag === 'NNP' && prev.length === 2 && t.length === 1) ||
                   (prev.tag === 'NNP' && prev.length === 1 && t.tag === 'NNP' && t.length === 2))) sep = ''; // 덩어리 맨 앞의 3음절 인명(이현+송, 김+현진) 결합
         else if (!origGap && prev && prev.tag[0] === 'N' && t.str === '잇' && text[s] === '이') sep = ''; // 서술격 조사 '이었-'을 잇다(VV)로 오분석한 경우 보정: 명사에 붙임
-        else if (t.str === '지' && t.tag === 'VX' && prev && /[아어여해워와쳐려겨셔]/.test(text[prev.position + prev.length - 1] || '')) sep = ''; // '-아/어지다'는 붙여 씀 (더해진다, 중요해진다)
+        else if (t.str === '지' && t.tag === 'VX' && prev && /[아어여해워와쳐려겨셔]/.test(text[prev.position + prev.length - 1] || '')) sep = ''; // '-지다'는 붙여 씀 (더해진다, 중요해진다)
+        else if (t.str === '하' && (t.tag === 'VX' || t.tag === 'VV') && prev &&
+                 (t.tag === 'VX' || (prev.tag[0] === 'N' && !'한할'.includes(text[s])))) sep = ''; // '-하다'는 붙여 씀 (해야한다, 표현하고)
         else if (prev && isHangulClass(prev.tag) && t.tag === 'SN') sep = ' ';  // "지난15년" → "지난 15년"
         else if (!prev || !isHangulClass(prev.tag) || !isHangulClass(t.tag)) sep = origGap ? ' ' : '';
         else if (prev.tag === 'NR' && t.tag === 'NR') sep = origGap ? ' ' : '';
@@ -1030,6 +1032,8 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
     }
     out += text.slice(lastEnd < 0 ? 0 : lastEnd).replace(/^[ \t]+/, m => m ? ' ' : '');
     out = out.replace(/[ \t]{2,}/g, ' ').replace(/^ +| +$/g, '');
+    // 보조용언 '-내다'는 띄어 씀 (만들어냈다 → 만들어 냈다) — 사용자 원칙
+    out = out.replace(/((?:[가-힣][아어여워와줘쳐려겨셔해뤄눠춰퉈])|(?:(?<![가-힣])해)) ?(냈|낸(?=다)|내(?=[다고면서자며야기려])|낼(?=[ .,!?~)"”』」]|수|$))/g, '$1 $2');
     return repairProtected(out);
   };
 }
