@@ -156,7 +156,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 19</b> — '-아/어야 하다' 띄움, -하다·-지다 붙임, -내다 띄움</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 20</b> — 빨라진다·느껴진다 붙임 인식, 활용형·괄호형까지 묶음 동시 적용</div>
 </div>
 
 <script>
@@ -676,13 +676,32 @@ const SpacingEngine = (function () {
       for (const d of diffs) {
         const key = d.before + '\u0000' + d.after;
         if (!map.has(key)) map.set(key, {
-          before: d.before, after: d.after, paras: [], mode: 'auto', customText: null,
-          group: stripTail(d.before) + '\u0000' + stripTail(d.after)
+          before: d.before, after: d.after, paras: [], mode: 'auto', customText: null, group: 0
         });
         map.get(key).paras.push(i + 1);
       }
     });
-    return [...map.values()];
+    const items = [...map.values()];
+    buildGroups(items);
+    return items;
+  }
+
+  // 같은 단어의 활용형·조사형·부호 붙은 형태를 한 묶음으로: 조사 제거형이 같거나,
+  // 공백을 뺀 글자가 서로 접두 관계(업스케일 < 업스케일한, 업스케일(Generative)면 같은 묶음
+  function buildGroups(items) {
+    const n = items.length;
+    const parent = [...Array(n).keys()];
+    const find = x => (parent[x] === x ? x : (parent[x] = find(parent[x])));
+    const uni = (a, b) => { parent[find(a)] = find(b); };
+    const cs = items.map(it => it.before.replace(/ /g, ''));
+    const tk = items.map(it => stripTail(it.before) + '\u0000' + stripTail(it.after));
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      if (tk[i] === tk[j]) { uni(i, j); continue; }
+      const s = cs[i].length <= cs[j].length ? cs[i] : cs[j];
+      const l = cs[i].length <= cs[j].length ? cs[j] : cs[i];
+      if (s.length >= 2 && l.startsWith(s)) uni(i, j);
+    }
+    items.forEach((it, i) => { it.group = find(i); });
   }
 
   const boundedRe = s => new RegExp('(?<=^|[ ])' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=[ ]|$)', 'g');
@@ -751,7 +770,17 @@ const SpacingEngine = (function () {
       const btn = tbody.querySelector(`button.edit-apply[data-idx="${idx}"]`);
       const val = input.value.trim();
       if (!val) return;
-      for (const k of groupIndexes(idx)) syncItem(k, 'off', k === idx ? val : null);
+      // 같은 묶음의 다른 형태에는 꼬리(활용어미·조사·부호)를 바꿔 붙여 입력값을 전파
+      const csI = lastResult.editItems[idx].before.replace(/ /g, '');
+      for (const k of groupIndexes(idx)) {
+        if (k === idx) { syncItem(k, 'off', val); continue; }
+        const csK = lastResult.editItems[k].before.replace(/ /g, '');
+        let p = 0; while (p < csI.length && p < csK.length && csI[p] === csK[p]) p++;
+        const tailI = csI.slice(p), tailK = csK.slice(p);
+        if (p >= 2 && (tailI === '' || val.endsWith(tailI)))
+          syncItem(k, 'off', val.slice(0, val.length - tailI.length) + tailK);
+        else syncItem(k, 'off', null);
+      }
       btn.textContent = '반영됨!';
       setTimeout(() => { btn.textContent = '반영'; }, 1200);
       recomputeEdits();
@@ -949,6 +978,15 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
     return c === 'N' || c === 'V' || c === 'M' || c === 'I' || c === 'X' ||
            c === 'J' || c === 'E';   // 조사·어미 뒤 새 단어는 띄어야 하므로 한국어 부류에 포함
   };
+  // '-아/어' 연결어미(축약형 포함)로 끝나는 글자인지: 받침 없고 모음이 ㅐㅓㅕㅘㅝ (느껴, 해, 워, 와, 만들어)
+  // ㅏ 모음은 '라'(빨라, 몰라, 달라)만 인정 — '가·나' 등은 보조용언·조사와 겹쳐 오붙임 위험
+  const isConnEnd = ch => {
+    if (!ch) return false;
+    if (ch === '라' || ch === '아') return true; // 빨라, 좋아
+    const c = ch.charCodeAt(0) - 0xAC00;
+    if (c < 0 || c >= 11172 || c % 28 !== 0) return false;
+    return [1, 4, 6, 9, 14].includes(((c / 28) | 0) % 21);
+  };
   const attachToPrev = tag =>
     tag[0] === 'J' || tag[0] === 'E' || tag.startsWith('XS') || tag === 'VCP';
   // 고유명사(NNP)가 포함된 원문 붙임 덩어리 안의 명사류 연쇄는 원문 유지
@@ -1017,7 +1055,7 @@ function kiwiSpaceFactory(kiwi, getProtectedWords) {
                  ((prev.tag === 'NNP' && prev.length === 2 && t.length === 1) ||
                   (prev.tag === 'NNP' && prev.length === 1 && t.tag === 'NNP' && t.length === 2))) sep = ''; // 덩어리 맨 앞의 3음절 인명(이현+송, 김+현진) 결합
         else if (!origGap && prev && prev.tag[0] === 'N' && t.str === '잇' && text[s] === '이') sep = ''; // 서술격 조사 '이었-'을 잇다(VV)로 오분석한 경우 보정: 명사에 붙임
-        else if (t.str === '지' && t.tag === 'VX' && prev && /[아어여해워와쳐려겨셔]/.test(text[prev.position + prev.length - 1] || '')) sep = ''; // '-지다'는 붙여 씀 (더해진다, 중요해진다)
+        else if (t.str === '지' && t.tag === 'VX' && prev && prev.tag[0] !== 'J' && isConnEnd(text[prev.position + prev.length - 1])) sep = ''; // '-지다'는 붙여 씀 (더해진다, 빨라진다, 느껴진다) — 조사 뒤는 제외(해가 진다)
         else if (t.str === '하' && (t.tag === 'VX' || t.tag === 'VV') && prev &&
                  ((t.tag === 'VX' && text[prev.position + prev.length - 1] !== '야') ||
                   (prev.tag[0] === 'N' && !'한할'.includes(text[s])))) sep = ''; // '-하다'는 붙여 씀 (표현하고) — 단 '-아/어야 하다'는 띄움
