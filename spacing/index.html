@@ -143,7 +143,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         띄어쓰기가 바뀐 낱말을 모두 보여줍니다. 항목마다 직접 조정할 수 있어요 —
         <b>"적용" 체크를 끄면</b> 그 낱말은 문서 전체에서 수정 전 형태로 돌아가고,
         <b>입력창에 쓰고 [반영]</b>하면 그 형태로 문서 전체가 통일됩니다. 모두 다운로드에 즉시 반영돼요.
-        자주 쪼개지는 단어는 위의 "붙여 쓰는 단어 등록"에 추가하면 다음부터 자동으로 유지됩니다.</p>
+        같은 단어의 활용형 항목("체크박스"·"체크박스를" 등)은 하나만 조정해도 함께 적용됩니다.\n        자주 쪼개지는 단어는 위의 "붙여 쓰는 단어 등록"에 추가하면 다음부터 자동으로 유지됩니다.</p>
       <div class="scroll" style="max-height:480px"><table id="wordTable">
         <thead><tr><th style="width:64px">적용</th><th style="width:90px">단락</th><th>수정 전</th><th>수정 후 · 직접 수정</th></tr></thead>
         <tbody></tbody>
@@ -156,7 +156,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 16</b> — 교정 목록 통합: 모든 항목 직접 수정 가능</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 17</b> — 같은 단어의 활용형 항목 일괄 적용</div>
 </div>
 
 <script>
@@ -656,6 +656,16 @@ const SpacingEngine = (function () {
   }
 
   // 바뀐 낱말들을 (수정 전→수정 후) 단위로 묶어 편집 항목 생성
+  // 조사·문장부호를 떼어낸 어근으로 같은 단어의 활용형을 한 묶음으로 인식
+  const UI_JOSA = ['이라는','에서는','으로는','까지는','에서','으로','부터','까지','에게','처럼','라는','조차','마저','밖에',
+    '은','는','이','가','을','를','에','의','도','만','와','과','로'];
+  function stripTail(s) {
+    let t = s.replace(/[.,!?;:)\]"'”』」>]+$/g, '');
+    for (const j of UI_JOSA) {
+      if (t.length > j.length + 1 && t.endsWith(j)) { t = t.slice(0, -j.length); break; }
+    }
+    return t;
+  }
   function buildEditItems(r) {
     const map = new Map();
     r.autoParagraphs.forEach((p, i) => {
@@ -665,7 +675,10 @@ const SpacingEngine = (function () {
       if (diffs === null) return;
       for (const d of diffs) {
         const key = d.before + '\u0000' + d.after;
-        if (!map.has(key)) map.set(key, { before: d.before, after: d.after, paras: [], mode: 'auto', customText: null });
+        if (!map.has(key)) map.set(key, {
+          before: d.before, after: d.after, paras: [], mode: 'auto', customText: null,
+          group: stripTail(d.before) + '\u0000' + stripTail(d.after)
+        });
         map.get(key).paras.push(i + 1);
       }
     });
@@ -709,27 +722,36 @@ const SpacingEngine = (function () {
         </td>`;
       tbody.appendChild(tr);
     });
+    // 항목 하나의 상태 변경을 같은 묶음(같은 단어의 활용형) 전체에 반영
+    function syncItem(k, mode, customText) {
+      const m = lastResult.editItems[k];
+      m.mode = mode;
+      m.customText = customText;
+      const cb2 = tbody.querySelector(`input.edit-toggle[data-idx="${k}"]`);
+      const inp2 = tbody.querySelector(`input.edit-custom[data-idx="${k}"]`);
+      const sp2 = tbody.querySelector(`span.after[data-idx="${k}"]`);
+      if (cb2) cb2.checked = mode === 'auto';
+      if (inp2 && customText == null) inp2.value = '';
+      if (sp2) sp2.textContent = customText != null ? customText : (mode === 'auto' ? m.after : m.before);
+    }
+    function groupIndexes(idx) {
+      const g = lastResult.editItems[idx].group;
+      return lastResult.editItems.map((m, k) => (m.group === g ? k : -1)).filter(k => k >= 0);
+    }
     tbody.querySelectorAll('input.edit-toggle').forEach(cb => {
       cb.addEventListener('change', () => {
         const idx = +cb.dataset.idx;
-        const it = lastResult.editItems[idx];
-        it.mode = cb.checked ? 'auto' : 'off';
-        if (cb.checked) { it.customText = null; tbody.querySelector(`input.edit-custom[data-idx="${idx}"]`).value = ''; }
-        tbody.querySelector(`span.after[data-idx="${idx}"]`).textContent =
-          it.customText != null ? it.customText : (cb.checked ? it.after : it.before);
+        const mode = cb.checked ? 'auto' : 'off';
+        for (const k of groupIndexes(idx)) syncItem(k, mode, null);
         recomputeEdits();
       });
     });
     const applyCustom = idx => {
-      const it = lastResult.editItems[idx];
       const input = tbody.querySelector(`input.edit-custom[data-idx="${idx}"]`);
       const btn = tbody.querySelector(`button.edit-apply[data-idx="${idx}"]`);
       const val = input.value.trim();
       if (!val) return;
-      it.customText = val;
-      it.mode = 'off';
-      tbody.querySelector(`input.edit-toggle[data-idx="${idx}"]`).checked = false;
-      tbody.querySelector(`span.after[data-idx="${idx}"]`).textContent = val;
+      for (const k of groupIndexes(idx)) syncItem(k, 'off', k === idx ? val : null);
       btn.textContent = '반영됨!';
       setTimeout(() => { btn.textContent = '반영'; }, 1200);
       recomputeEdits();
