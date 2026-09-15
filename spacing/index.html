@@ -164,7 +164,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 21</b> — 교정 목록 검색창·조정 항목 필터 추가</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 22</b> — 통일 치환이 조사·부호 붙은 자리(색상 값의 등)까지 적용</div>
 </div>
 
 <script>
@@ -713,16 +713,26 @@ const SpacingEngine = (function () {
   }
 
   const boundedRe = s => new RegExp('(?<=^|[ ])' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=[ ]|$)', 'g');
+  const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // 낱말 뒤에 조사·문장부호·문장 끝이 오는 자리(다른 단어의 시작이면 제외)
+  const UI_TAIL = '(?=$|[^가-힣]|[은는이가을를과와도의로만에처부까조마밖라보된되됨될시하해했들였서일인며랑나냐요든으])';
 
   // 항목 상태 반영: 체크 끔 = 수정 전 형태로 문서 전체 통일, 반영 = 입력한 형태로 통일
+  // 글자가 같고 띄어쓰기만 다른 통일은 "색상 값의·색상값이"처럼 조사·부호가 붙은 자리까지 치환
   function recomputeEdits() {
     if (!lastResult) return;
     let paras = lastResult.autoParagraphs.slice();
     for (const it of lastResult.editItems) {
       if (it.mode === 'auto' && it.customText == null) continue;
       const target = it.customText != null ? it.customText : it.before;
-      const reA = boundedRe(it.after), reB = boundedRe(it.before);
-      paras = paras.map(p => p.replace(reA, target).replace(reB, target));
+      const csB = it.before.replace(/ /g, '');
+      if (csB === target.replace(/ /g, '') && csB.length >= 2) {
+        const flex = new RegExp('(?<=^|[^가-힣])' + csB.split('').map(escRe).join(' ?') + UI_TAIL, 'g');
+        paras = paras.map(p => p.replace(flex, target));
+      } else {
+        const reA = boundedRe(it.after), reB = boundedRe(it.before);
+        paras = paras.map(p => p.replace(reA, target).replace(reB, target));
+      }
     }
     lastResult.paragraphs = paras;
     renderPreview(lastResult);
