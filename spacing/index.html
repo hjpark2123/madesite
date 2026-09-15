@@ -115,7 +115,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div id="paneFile">
       <label class="drop" id="drop">
         <div class="big">파일을 끌어다 놓거나 클릭해서 선택</div>
-        <div class="small">.docx (워드) · .hwpx (한글) · .txt 지원<br>
+        <div class="small">.docx (워드) · .hwpx (한글) · .txt 지원 — 한글 파일은 <b>.hwpx 그대로</b>, 이미지·표를 보존해 재저장됩니다<br>
           ※ .hwp(구형 한글)는 한글 프로그램에서 <b>.hwpx 또는 .docx로 저장</b> 후 올려 주세요</div>
         <input type="file" id="file" accept=".docx,.hwpx,.txt">
       </label>
@@ -134,7 +134,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <span class="pill" id="statChanges"></span>
       <span class="pill" id="statWords"></span>
     </div>
-    <button class="btn" id="download">교정된 워드 파일 다운로드</button>
+    <button class="btn" id="download">교정된 파일 다운로드 (워드→.docx, 한글→.hwpx)</button>
     <button class="btn ghost" id="copyText">교정 텍스트 복사</button>
 
     <div id="wordBox" class="hidden">
@@ -164,7 +164,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     </div>
   </div>
 
-  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 22</b> — 통일 치환이 조사·부호 붙은 자리(색상 값의 등)까지 적용</div>
+  <div class="footer">모든 처리는 브라우저 안에서만 이루어지며, 파일이 외부로 전송되지 않습니다.<br>합성용언 목록 출처: 국립국어원 한국어기초사전 오픈 데이터 (CC BY-SA, hunspell-dict-ko 경유)<br><b>버전 23</b> — 한글(.hwpx)은 이미지·표 보존한 채 .hwpx 그대로 다운로드</div>
 </div>
 
 <script>
@@ -489,7 +489,8 @@ const SpacingEngine = (function () {
   'use strict';
   const $ = id => document.getElementById(id);
   let lastResult = null;   // { paragraphs, changes, unifications, originalParagraphs }
-  let lastDocx = null;     // { zip, doc, paraNodes } — 원본 docx 재작성용
+  let lastDocx = null;     // { zip, parts, paraNodes } — 원본 docx 재작성용
+  let lastHwpx = null;     // { zip, parts, paraNodes } — 원본 hwpx 재작성용
   let lastName = '교정문서';
 
   // ---------- 붙여 쓰는 단어(사용자 사전) ----------
@@ -562,7 +563,7 @@ const SpacingEngine = (function () {
         await processHwpx(f);
       } else if (name.endsWith('.txt')) {
         const text = await f.text();
-        lastDocx = null;
+        lastDocx = null; lastHwpx = null;
         finish(text.split(/\r?\n/));
       } else if (name.endsWith('.hwp')) {
         throw new Error('.hwp(구형 한글) 파일은 직접 읽을 수 없어요. 한글 프로그램에서 [다른 이름으로 저장] → .hwpx 또는 .docx로 저장한 뒤 다시 올려 주세요.');
@@ -596,32 +597,40 @@ const SpacingEngine = (function () {
       }
     }
     lastDocx = { zip, parts, paraNodes };
+    lastHwpx = null;
     finish(paraTexts);
   }
 
-  // ---------- hwpx 처리 (텍스트 추출 → 새 워드 파일 생성) ----------
+  // ---------- hwpx 처리 (원본 구조 유지 — 이미지·표·서식 보존, .hwpx 그대로 재저장) ----------
   async function processHwpx(f) {
     const zip = await JSZip.loadAsync(await f.arrayBuffer());
-    const sections = Object.keys(zip.files)
+    const names = Object.keys(zip.files)
       .filter(n => /^Contents\/section\d+\.xml$/.test(n)).sort();
-    if (!sections.length) throw new Error('올바른 한글(.hwpx) 파일이 아닙니다.');
-    const paraTexts = [];
-    for (const s of sections) {
-      const xml = await zip.file(s).async('string');
-      const doc = new DOMParser().parseFromString(xml, 'application/xml');
-      const ps = Array.from(doc.getElementsByTagName('hp:p'));
-      for (const p of ps) {
-        const ts = Array.from(p.getElementsByTagName('hp:t'));
+    if (!names.length) throw new Error('올바른 한글(.hwpx) 파일이 아닙니다.');
+    // 표 안 문단은 자신의 hp:p에서만 세도록, 이 문단 직속의 hp:t만 수집
+    const directTs = p => Array.from(p.getElementsByTagName('hp:t')).filter(t => {
+      let n = t.parentNode;
+      while (n && n !== p) { if (n.tagName === 'hp:p') return false; n = n.parentNode; }
+      return true;
+    });
+    const parts = [], paraNodes = [], paraTexts = [];
+    for (const path of names) {
+      const doc = new DOMParser().parseFromString(await zip.file(path).async('string'), 'application/xml');
+      parts.push({ path, doc });
+      for (const p of Array.from(doc.getElementsByTagName('hp:p'))) {
+        const ts = directTs(p);
+        paraNodes.push(ts);
         paraTexts.push(ts.map(t => t.textContent).join(''));
       }
     }
     lastDocx = null;
+    lastHwpx = { zip, parts, paraNodes };
     finish(paraTexts);
   }
 
   // ---------- 텍스트 입력 ----------
   $('runText').onclick = () => {
-    lastDocx = null;
+    lastDocx = null; lastHwpx = null;
     lastName = '교정텍스트';
     finish($('text').value.split(/\r?\n/));
   };
@@ -863,12 +872,13 @@ const SpacingEngine = (function () {
   // ---------- 다운로드 ----------
   $('download').onclick = async () => {
     if (!lastResult) return;
-    let blob;
+    let blob, ext = '.docx';
     if (lastDocx) blob = await rebuildDocx(lastDocx, lastResult.paragraphs);
+    else if (lastHwpx) { blob = await rebuildHwpx(lastHwpx, lastResult.paragraphs); ext = '.hwpx'; }
     else blob = await buildNewDocx(lastResult.paragraphs);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = lastName + '_띄어쓰기교정.docx';
+    a.download = lastName + '_띄어쓰기교정' + ext;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -904,13 +914,13 @@ const SpacingEngine = (function () {
     ts.forEach((t, idx) => {
       if (t.textContent !== outs[idx]) {
         t.textContent = outs[idx];
-        t.setAttribute('xml:space', 'preserve');
+        if (t.tagName === 'w:t') t.setAttribute('xml:space', 'preserve'); // 워드 전용 속성
       }
     });
     return true;
   }
 
-  async function rebuildDocx(ctx, corrected) {
+  function rewriteParts(ctx, corrected) {
     const { zip, parts, paraNodes } = ctx;
     paraNodes.forEach((ts, i) => {
       if (!ts.length) return;
@@ -920,17 +930,29 @@ const SpacingEngine = (function () {
       if (!redistribute(ts, before, after)) {
         // 안전 폴백: 첫 텍스트 조각에 몰아넣기 (드문 경우)
         ts[0].textContent = after;
-        ts[0].setAttribute('xml:space', 'preserve');
+        if (ts[0].tagName === 'w:t') ts[0].setAttribute('xml:space', 'preserve');
         for (let k = 1; k < ts.length; k++) ts[k].textContent = '';
       }
     });
     for (const part of parts) {
       zip.file(part.path, new XMLSerializer().serializeToString(part.doc));
     }
-    return zip.generateAsync({
+    return zip;
+  }
+
+  async function rebuildDocx(ctx, corrected) {
+    return rewriteParts(ctx, corrected).generateAsync({
       type: 'blob',
       mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     });
+  }
+
+  async function rebuildHwpx(ctx, corrected) {
+    const zip = rewriteParts(ctx, corrected);
+    // OCF 규격: mimetype 항목은 무압축 저장
+    const mt = zip.file('mimetype');
+    if (mt) zip.file('mimetype', await mt.async('string'), { compression: 'STORE' });
+    return zip.generateAsync({ type: 'blob', mimeType: 'application/hwp+zip' });
   }
 
   // 새 docx 생성 (hwpx/txt 입력용)
