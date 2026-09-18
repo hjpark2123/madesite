@@ -11,7 +11,7 @@
 :root{
   --ground:#F4F3F7; --surface:#FFFFFF; --surface-2:#FAF9FC; --line:#E2E0EA; --line-strong:#CBC8D6;
   --ink:#211F2B; --muted:#6C6878; --faint:#9A96A6; --btn:#2A2740; --btn-ink:#FFFFFF;
-  --focus:#7B5CD6; --star:#E8A400; --danger:#C0392B;
+  --focus:#7B5CD6; --star:#12C94E; --bar:#3B3947; --bar-track:#E9E7EF; --danger:#C0392B;
   --hj-bg:#FEF7FA; --hj-line:#F5D6E3; --hj-ink:#B02C63; --hj-solid:#F07AAB;
   --dd-bg:#FFFCEC; --dd-line:#F1E3A6; --dd-ink:#7E6100; --dd-solid:#F5CF2E;
   --bj-bg:#F9F6FE; --bj-line:#DFD3F4; --bj-ink:#5F3AAE; --bj-solid:#9A74E0;
@@ -24,7 +24,7 @@
   :root:not([data-theme="light"]){
     --ground:#16151C; --surface:#201F28; --surface-2:#1B1A22; --line:#33313F; --line-strong:#4A4759;
     --ink:#EEEDF3; --muted:#A7A3B5; --faint:#7A7689; --btn:#E9E6F5; --btn-ink:#1B1A22;
-    --focus:#A98BF0; --star:#F5C040; --danger:#F07A6A;
+    --focus:#A98BF0; --star:#3DEB78; --bar:#CBC7D8; --bar-track:#33313F; --danger:#F07A6A;
     --hj-bg:#282026; --hj-line:#4E3643; --hj-ink:#F6A8C8; --hj-solid:#E0679A;
     --dd-bg:#27251D; --dd-line:#4C4630; --dd-ink:#F3D768; --dd-solid:#D6B226;
     --bj-bg:#24212E; --bj-line:#443B5C; --bj-ink:#C8B2F5; --bj-solid:#8E6AD8;
@@ -35,7 +35,7 @@
 :root[data-theme="dark"]{
   --ground:#16151C; --surface:#201F28; --surface-2:#1B1A22; --line:#33313F; --line-strong:#4A4759;
   --ink:#EEEDF3; --muted:#A7A3B5; --faint:#7A7689; --btn:#E9E6F5; --btn-ink:#1B1A22;
-  --focus:#A98BF0; --star:#F5C040; --danger:#F07A6A;
+  --focus:#A98BF0; --star:#3DEB78; --bar:#CBC7D8; --bar-track:#33313F; --danger:#F07A6A;
   --hj-bg:#282026; --hj-line:#4E3643; --hj-ink:#F6A8C8; --hj-solid:#E0679A;
   --dd-bg:#27251D; --dd-line:#4C4630; --dd-ink:#F3D768; --dd-solid:#D6B226;
   --bj-bg:#24212E; --bj-line:#443B5C; --bj-ink:#C8B2F5; --bj-solid:#8E6AD8;
@@ -131,8 +131,8 @@ h1 .yr{font-variant-numeric:tabular-nums}
 .m-name{font-family:var(--font-display);font-size:22px;font-weight:700;margin:0;font-variant-numeric:tabular-nums}
 .m-count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .m-count .st{color:var(--star)}
-.m-bar{display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--line)}
-.m-bar span{display:block;height:100%}
+.m-bar{height:5px;border-radius:3px;overflow:hidden;background:var(--bar-track)}
+.m-bar span{display:block;height:100%;background:var(--bar);border-radius:3px}
 .cards{display:flex;flex-direction:column;gap:8px}
 .add-in{border:1px dashed var(--line-strong);background:transparent;border-radius:9px;padding:7px;color:var(--muted);font-size:13px;margin-top:auto}
 .add-in:hover{color:var(--ink);border-color:var(--ink)}
@@ -424,11 +424,11 @@ function cardHTML(b){
 function monthSection(m,list,all){
   const label=m===0?'월 미정':`${m}월`;
   const stars=all.filter(b=>b.star).length;
-  const bar=all.length?BRANDS.map(b=>{const n=all.filter(x=>x.brand===b.id).length; return n?`<span style="flex:${n};background:var(--${b.id}-solid)" title="${b.name} ${n}권"></span>`:''}).join('')+(all.filter(x=>!BRAND_BY_ID[x.brand]).length?`<span style="flex:${all.filter(x=>!BRAND_BY_ID[x.brand]).length};background:var(--none-solid)"></span>`:''):'';
+  const bar=`<span style="width:${Math.min(all.length/4,1)*100}%"></span>`;
   const nowM=(new Date().getFullYear()===S.year && m===new Date().getMonth()+1);
   return `<section class="month ${nowM?'now':''}" data-drop="${m}">
     <div class="m-head"><h2 class="m-name">${label}</h2><span class="m-count">${all.length}권${stars?` · <span class="st">★${stars}</span>`:''}</span></div>
-    ${all.length?`<div class="m-bar" aria-hidden="true">${bar}</div>`:''}
+    <div class="m-bar" title="${all.length}권 / 월 4권 기준" aria-hidden="true">${bar}</div>
     <div class="cards">${list.length?list.map(cardHTML).join(''):`<div class="empty-m">${all.length?'필터에 맞는 책이 없어요':'아직 계획된 책이 없어요'}</div>`}</div>
     <button type="button" class="add-in" data-addmonth="${m}">＋ ${label}에 추가</button>
   </section>`;
