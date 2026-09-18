@@ -12,9 +12,9 @@
   --ground:#F4F3F7; --surface:#FFFFFF; --surface-2:#FAF9FC; --line:#E2E0EA; --line-strong:#CBC8D6;
   --ink:#211F2B; --muted:#6C6878; --faint:#9A96A6; --btn:#2A2740; --btn-ink:#FFFFFF;
   --focus:#7B5CD6; --star:#E8A400; --danger:#C0392B;
-  --hj-bg:#FCE3EE; --hj-line:#EE9ABD; --hj-ink:#B02C63; --hj-solid:#F07AAB;
-  --dd-bg:#FFF3BF; --dd-line:#EAC634; --dd-ink:#7E6100; --dd-solid:#F5CF2E;
-  --bj-bg:#ECE3FB; --bj-line:#A88BE0; --bj-ink:#5F3AAE; --bj-solid:#9A74E0;
+  --hj-bg:#FEF7FA; --hj-line:#F5D6E3; --hj-ink:#B02C63; --hj-solid:#F07AAB;
+  --dd-bg:#FFFCEC; --dd-line:#F1E3A6; --dd-ink:#7E6100; --dd-solid:#F5CF2E;
+  --bj-bg:#F9F6FE; --bj-line:#DFD3F4; --bj-ink:#5F3AAE; --bj-solid:#9A74E0;
   --none-bg:#F1F0F4; --none-line:#D4D1DD; --none-ink:#5E5A6B; --none-solid:#BDB9C8;
   --shadow:0 1px 2px rgba(33,31,43,.06),0 4px 14px rgba(33,31,43,.05);
   --font-ui:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
@@ -25,9 +25,9 @@
     --ground:#16151C; --surface:#201F28; --surface-2:#1B1A22; --line:#33313F; --line-strong:#4A4759;
     --ink:#EEEDF3; --muted:#A7A3B5; --faint:#7A7689; --btn:#E9E6F5; --btn-ink:#1B1A22;
     --focus:#A98BF0; --star:#F5C040; --danger:#F07A6A;
-    --hj-bg:#3A2130; --hj-line:#9A4A6D; --hj-ink:#F6A8C8; --hj-solid:#E0679A;
-    --dd-bg:#37311A; --dd-line:#9C8428; --dd-ink:#F3D768; --dd-solid:#D6B226;
-    --bj-bg:#2B2440; --bj-line:#7A5FB8; --bj-ink:#C8B2F5; --bj-solid:#8E6AD8;
+    --hj-bg:#282026; --hj-line:#4E3643; --hj-ink:#F6A8C8; --hj-solid:#E0679A;
+    --dd-bg:#27251D; --dd-line:#4C4630; --dd-ink:#F3D768; --dd-solid:#D6B226;
+    --bj-bg:#24212E; --bj-line:#443B5C; --bj-ink:#C8B2F5; --bj-solid:#8E6AD8;
     --none-bg:#26252E; --none-line:#44414F; --none-ink:#B9B5C6; --none-solid:#6A6679;
     --shadow:0 1px 2px rgba(0,0,0,.3);
   }
@@ -36,9 +36,9 @@
   --ground:#16151C; --surface:#201F28; --surface-2:#1B1A22; --line:#33313F; --line-strong:#4A4759;
   --ink:#EEEDF3; --muted:#A7A3B5; --faint:#7A7689; --btn:#E9E6F5; --btn-ink:#1B1A22;
   --focus:#A98BF0; --star:#F5C040; --danger:#F07A6A;
-  --hj-bg:#3A2130; --hj-line:#9A4A6D; --hj-ink:#F6A8C8; --hj-solid:#E0679A;
-  --dd-bg:#37311A; --dd-line:#9C8428; --dd-ink:#F3D768; --dd-solid:#D6B226;
-  --bj-bg:#2B2440; --bj-line:#7A5FB8; --bj-ink:#C8B2F5; --bj-solid:#8E6AD8;
+  --hj-bg:#282026; --hj-line:#4E3643; --hj-ink:#F6A8C8; --hj-solid:#E0679A;
+  --dd-bg:#27251D; --dd-line:#4C4630; --dd-ink:#F3D768; --dd-solid:#D6B226;
+  --bj-bg:#24212E; --bj-line:#443B5C; --bj-ink:#C8B2F5; --bj-solid:#8E6AD8;
   --none-bg:#26252E; --none-line:#44414F; --none-ink:#B9B5C6; --none-solid:#6A6679;
   --shadow:0 1px 2px rgba(0,0,0,.3);
 }
@@ -87,7 +87,7 @@ h1 .yr{font-variant-numeric:tabular-nums}
 .filter-btn{border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:0 12px;min-height:38px;font-weight:600;display:inline-flex;align-items:center;gap:6px;flex:none}
 .filter-btn[aria-expanded="true"]{border-color:var(--ink)}
 .filter-btn .badge{background:var(--btn);color:var(--btn-ink);border-radius:999px;font-size:11px;min-width:18px;height:18px;padding:0 5px;display:inline-grid;place-items:center;font-variant-numeric:tabular-nums}
-.months{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:4px}
+.months{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:4px}
 .months .mchip{border:0;background:transparent;border-radius:7px;padding:6px 2px;font-size:13px;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums;display:grid;justify-items:center;line-height:1.2;min-height:40px;align-content:center}
 .months .mchip:hover{color:var(--ink);background:var(--surface)}
 .months .mchip[aria-pressed="true"]{background:var(--btn);color:var(--btn-ink)}
@@ -258,6 +258,7 @@ dialog::backdrop{background:rgba(20,18,30,.45)}
       <div class="f-line"><span class="label">표시</span><div class="f-items">
         <button type="button" class="chip" id="f-star" aria-pressed="false">★ 주력만</button>
         <button type="button" class="chip" id="f-series" aria-pressed="false">시리즈만</button>
+        <button type="button" class="chip" id="f-undecided" aria-pressed="false">◌ 일정 미정</button>
       </div></div>
       <div class="f-line"><span class="label">분류</span><div class="f-items">
         <select class="sel" id="f-genre" aria-label="분야 필터"></select>
@@ -281,7 +282,7 @@ const BRANDS=[{id:'hj',name:'혜지원'},{id:'dd',name:'다정다감'},{id:'bj',
 const BRAND_BY_ID=Object.fromEntries(BRANDS.map(b=>[b.id,b]));
 const DEFAULT_SETTINGS={
   years:[2027],
-  genres:['IT','그림책','종이접기','요리','어린이','실용','청소년'],
+  genres:['IT','그림책','종이접기','요리','어린이','실용','청소년','경제 경영','어학'],
   statuses:[{id:'s1',name:'계약'},{id:'s2',name:'원고'},{id:'s3',name:'그림'},{id:'s4',name:'편집'},{id:'s5',name:'인쇄'},{id:'s6',name:'출간'},{id:'s7',name:'보류'}]
 };
 const STATUS_TONES=[['#E7E4F1','#4C4760'],['#DCEBFA','#1F5B94'],['#FBE6D2','#8C4A12'],['#E0F1EA','#1D6B4A'],['#F7DCE0','#8E2635'],['#D8EFD2','#2E6B1F'],['#ECE9E2','#5E584A'],['#E3E0F8','#3E3391']];
@@ -347,6 +348,7 @@ function matches(b){
   if(S.brands.size && !S.brands.has(b.brand||'')) return false;
   if(S.star && !b.star) return false;
   if(S.series && !b.series) return false;
+  if(S.undecided && b.month && !b.tentative) return false;
   if(S.genre && b.genre!==S.genre) return false;
   if(S.status && b.status!==S.status) return false;
   if(S.q){const q=S.q.toLowerCase(); const hay=[b.title,b.author,b.seriesName,b.memo,b.genre].join(' ').toLowerCase(); if(!hay.includes(q)) return false}
@@ -389,22 +391,22 @@ function renderFilters(){
   const mchip=(m,label,n)=>`<button type="button" class="mchip" data-month="${m}" aria-pressed="${S.month===m}" aria-label="${label} ${n}권"><span>${label}</span><span class="n ${n?'':'zero'}">${n}</span></button>`;
   const mc=[mchip(0,'전체',yb.length)];
   for(let m=1;m<=12;m++) mc.push(mchip(m,m+'월',yb.filter(b=>b.month===m).length));
-  mc.push(mchip(-1,'미정',yb.filter(b=>!b.month).length));
   $('#month-chips').innerHTML=mc.join('');
-  const fc=S.brands.size+(S.star?1:0)+(S.series?1:0)+(S.genre?1:0)+(S.status?1:0);
+  const fc=S.brands.size+(S.star?1:0)+(S.series?1:0)+(S.undecided?1:0)+(S.genre?1:0)+(S.status?1:0);
   const fcEl=$('#f-count'); fcEl.textContent=fc; fcEl.hidden=!fc;
   $('#f-panel').hidden=!S.filterOpen; $('#f-toggle').setAttribute('aria-expanded',!!S.filterOpen);
   $('#brand-chips').innerHTML=BRANDS.map(b=>`<button type="button" class="chip b-${b.id}" data-brand="${b.id}" aria-pressed="${S.brands.has(b.id)}"><span class="dot" style="background:var(--${b.id}-solid)"></span>${b.name}</button>`).join('');
-  $('#f-star').setAttribute('aria-pressed',S.star); $('#f-series').setAttribute('aria-pressed',S.series);
+  $('#f-star').setAttribute('aria-pressed',S.star); $('#f-undecided').setAttribute('aria-pressed',!!S.undecided); $('#f-series').setAttribute('aria-pressed',S.series);
   $('#f-genre').innerHTML='<option value="">분야 전체</option>'+S.settings.genres.map(g=>`<option ${g===S.genre?'selected':''}>${esc(g)}</option>`).join('');
   $('#f-status').innerHTML='<option value="">진행 상태 전체</option>'+S.settings.statuses.map(s=>`<option value="${s.id}" ${s.id===S.status?'selected':''}>${esc(s.name)}</option>`).join('');
   $('#v-board').setAttribute('aria-pressed',S.view==='board'); $('#v-list').setAttribute('aria-pressed',S.view==='list');
 }
 function renderSummary(){
   const bs=yearBooks(); const total=bs.length; const stars=bs.filter(b=>b.star).length; const ser=bs.filter(b=>b.series).length;
+  const und=bs.filter(b=>!b.month||b.tentative).length;
   const done=bs.filter(b=>{const s=statusById(b.status); return s&&/출간|완료/.test(s.name)}).length;
   const per=BRANDS.map(b=>`<span><span class="sw" style="background:var(--${b.id}-solid)"></span>${b.name} <b>${bs.filter(x=>x.brand===b.id).length}</b></span>`).join('');
-  $('#summary').innerHTML = S.mode==='loading'?'':`<span>총 <b>${total}</b>권</span><span>★ 주력 <b>${stars}</b></span><span>시리즈 <b>${ser}</b></span><span>출간 완료 <b>${done}</b></span>${per}`;
+  $('#summary').innerHTML = S.mode==='loading'?'':`<span>총 <b>${total}</b>권</span><span>★ 주력 <b>${stars}</b></span><span>시리즈 <b>${ser}</b></span><span>출간 완료 <b>${done}</b></span>${und?`<button type="button" class="link-btn" id="sum-und">일정 미정 <b>${und}</b></button>`:''}${per}`;
 }
 function cardHTML(b){
   const br=BRAND_BY_ID[b.brand]; const st=statusById(b.status); const [bg,fg]=statusTone(st,statusIdx(b.status));
@@ -434,13 +436,13 @@ function monthSection(m,list,all){
 function renderBoard(){
   const bs=yearBooks();
   let months;
-  if(S.month>0) months=[S.month]; else if(S.month===-1) months=[0]; else { months=[1,2,3,4,5,6,7,8,9,10,11,12]; if(bs.some(b=>!b.month)) months.push(0) }
+  if(S.month>0) months=[S.month]; else { months=[1,2,3,4,5,6,7,8,9,10,11,12]; if(S.undecided && bs.some(b=>!b.month)) months.unshift(0) }
   const html=months.map(m=>{const all=bs.filter(b=>(b.month||0)===m).sort(cardSort); return monthSection(m,all.filter(matches),all)}).join('');
   $('#main').innerHTML=`<div class="board ${months.length===1?'single':''}">${html}</div>`;
 }
 function renderList(){
   let bs=yearBooks().filter(matches);
-  if(S.month>0) bs=bs.filter(b=>b.month===S.month); else if(S.month===-1) bs=bs.filter(b=>!b.month);
+  if(S.month>0) bs=bs.filter(b=>b.month===S.month);
   const k=S.sort.key, d=S.sort.dir;
   const val=b=>{switch(k){case 'month':return b.month||99;case 'star':return b.star?0:1;case 'status':return statusIdx(b.status);case 'brand':return b.brand||'z';default:return (b[k]||'').toString()}};
   bs.sort((a,b)=>{const x=val(a),y=val(b); return (x>y?1:x<y?-1:0)*d || cardSort(a,b)});
@@ -617,9 +619,11 @@ function bind(){
   $('#f-toggle').addEventListener('click',()=>{S.filterOpen=!S.filterOpen; render()});
   $('#f-star').addEventListener('click',()=>{S.star=!S.star; render()});
   $('#f-series').addEventListener('click',()=>{S.series=!S.series; render()});
+  $('#f-undecided').addEventListener('click',()=>{S.undecided=!S.undecided; render()});
+  $('#summary').addEventListener('click',e=>{if(e.target.closest('#sum-und')){S.undecided=true; S.filterOpen=true; S.month=0; render()}});
   $('#f-genre').addEventListener('change',e=>{S.genre=e.target.value; render()});
   $('#f-status').addEventListener('change',e=>{S.status=e.target.value; render()});
-  $('#f-reset').addEventListener('click',()=>{S.month=0;S.brands.clear();S.star=false;S.series=false;S.genre='';S.status='';S.q='';$('#q').value=''; render()});
+  $('#f-reset').addEventListener('click',()=>{S.month=0;S.brands.clear();S.star=false;S.series=false;S.undecided=false;S.genre='';S.status='';S.q='';$('#q').value=''; render()});
   $('#month-chips').addEventListener('click',e=>{const c=e.target.closest('[data-month]'); if(!c) return; S.month=+c.dataset.month; render()});
   $('#brand-chips').addEventListener('click',e=>{const c=e.target.closest('[data-brand]'); if(!c) return; const id=c.dataset.brand; S.brands.has(id)?S.brands.delete(id):S.brands.add(id); render()});
   $('#years').addEventListener('click',e=>{
