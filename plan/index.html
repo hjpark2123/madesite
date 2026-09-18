@@ -411,7 +411,7 @@ function renderSummary(){
 function cardHTML(b){
   const br=BRAND_BY_ID[b.brand]; const st=statusById(b.status); const [bg,fg]=statusTone(st,statusIdx(b.status));
   const mv=moveLabel(b);
-  const meta=[b.author?esc(b.author):'<span style="opacity:.7">저자 미정</span>', b.contractDate?'계약 '+fmtDate(b.contractDate):'<span style="opacity:.7">계약 전</span>'].join(' · ');
+  const meta=[b.author?esc(b.author):'<span style="opacity:.7">저자 미정</span>', b.contractDate?'계약 '+fmtDate(b.contractDate):''].filter(Boolean).join(' · ');
   return `<article class="card ${br?br.id:''} ${b.tentative?'tent':''}" draggable="true" data-id="${b.id}" tabindex="0" aria-label="${esc(b.title||'제목 없음')} 열기">
     <div class="c-top"><span class="c-brand">${br?br.name:'브랜드 미정'}</span>
       <span style="display:flex;align-items:center;gap:4px">${st?`<span class="status" style="background:${bg};color:${fg}">${esc(st.name)}</span>`:''}
