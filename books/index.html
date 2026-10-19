@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>출간 관리</title>
+<style>
+/* Layout: 위에 큰 탭 두 개, 아래는 두 화면을 미리 띄워 두고 탭으로 바로 바꿔 보기 */
+:root{--ground:#F4F3F7;--line:#E2E0EA;--ink:#211F2B;--muted:#6C6878;--focus:#7B5CD6;
+  --font-ui:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ground:#16151C;--line:#33313F;--ink:#EEEDF3;--muted:#A7A3B5;--focus:#A98BF0;color-scheme:dark}}
+:root[data-theme="dark"]{--ground:#16151C;--line:#33313F;--ink:#EEEDF3;--muted:#A7A3B5;--focus:#A98BF0;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-ui);display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+.bar{flex:none;display:flex;gap:4px;border-bottom:1px solid var(--line);padding-top:max(8px,env(safe-area-inset-top,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));overflow-x:auto}
+@media (max-width:560px){.bar{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}}
+.tab{border:0;background:none;padding:10px 18px 11px;font:inherit;font-size:16px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap;cursor:pointer}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tab:focus-visible{outline:2px solid var(--focus);outline-offset:-2px;border-radius:6px}
+.views{flex:1;min-height:0;position:relative}
+.views iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--ground)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<nav class="bar" role="tablist" aria-label="메뉴">
+  <button class="tab" role="tab" id="t-plan" data-v="plan" aria-controls="v-plan" aria-selected="true">출간 계획표</button>
+  <button class="tab" role="tab" id="t-progress" data-v="progress" aria-controls="v-progress" aria-selected="false">원고 진행 상황</button>
+</nav>
+<main class="views">
+  <iframe id="v-plan" title="출간 계획표" src="plan.html?v=1"></iframe>
+  <iframe id="v-progress" title="원고 진행 상황" src="progress.html?v=1" hidden></iframe>
+</main>
+<script>
+(()=>{
+  const views=['plan','progress'];
+  function show(v){
+    if(!views.includes(v)) v='plan';
+    views.forEach(x=>{
+      document.getElementById('t-'+x).setAttribute('aria-selected',x===v);
+      document.getElementById('v-'+x).hidden=x!==v;
+    });
+    try{localStorage.setItem('books-tab',v)}catch(e){}
+    if(location.hash!=='#'+v) history.replaceState(null,'','#'+v);
+  }
+  document.querySelector('.bar').addEventListener('click',e=>{const b=e.target.closest('[data-v]'); if(b) show(b.dataset.v)});
+  let start=location.hash.slice(1);
+  if(!views.includes(start)){try{start=localStorage.getItem('books-tab')||'plan'}catch(e){start='plan'}}
+  show(start);
+  window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
+})();
+</script>
+</body>
+</html>
