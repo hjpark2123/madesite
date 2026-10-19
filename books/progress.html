@@ -86,11 +86,27 @@ h1{font-family:var(--font-display);font-weight:700;font-size:30px;margin:0;lette
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;min-height:32px;color:var(--muted)}
 .chip .dot{width:8px;height:8px;border-radius:50%}
 .chip[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--ink)}
+.sortbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.sortbar .k{font-size:12.5px;font-weight:600;color:var(--muted);margin-right:2px}
+.sortbar .chip{padding:4px 11px}
+.fst{position:relative}
+.fst-btn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;color:var(--ink)}
+.fst-btn.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);font-weight:600}
+.fst-btn .cv{font-size:10px;color:var(--muted)}
+.fst-pop{position:absolute;z-index:40;top:calc(100% + 6px);left:0;min-width:220px;background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.14);padding:6px}
+.fst-pop label{display:flex;align-items:center;gap:9px;padding:8px 8px;border-radius:7px;cursor:pointer;font-size:14px}
+.fst-pop label:hover{background:var(--surface-2)}
+.fst-pop input{width:17px;height:17px;margin:0;accent-color:var(--ink);flex:none}
+.fst-pop .n{margin-left:auto;color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.fst-pop .ft{display:flex;justify-content:space-between;gap:6px;border-top:1px solid var(--line);margin-top:4px;padding:6px 2px 0}
+.fst-pop .ft button{border:0;background:none;font:inherit;font-size:13px;padding:6px 8px;border-radius:6px;cursor:pointer;color:var(--ink)}
+.fst-pop .ft button:hover{background:var(--surface-2)}
+@media (max-width:560px){.fst-pop{position:fixed;left:16px;right:16px;top:auto;bottom:16px;min-width:0}}
 
 /* table */
 .sheet{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow-x:auto}
 .grid{min-width:1250px}
-.row{display:grid;grid-template-columns:92px minmax(170px,1.3fr) minmax(76px,.55fr) 108px 88px 118px 140px minmax(190px,1.6fr) minmax(140px,1fr) 76px;border-bottom:1px solid var(--line);align-items:stretch}
+.row{display:grid;grid-template-columns:92px minmax(170px,1.3fr) minmax(76px,.55fr) 108px 88px 118px 190px minmax(190px,1.6fr) minmax(140px,1fr) 76px;border-bottom:1px solid var(--line);align-items:stretch}
 .row:last-child{border-bottom:0}
 .head{background:var(--surface-2);color:var(--muted);font-size:12.5px;font-weight:600;letter-spacing:.02em}
 .head>div{padding:10px 10px}
@@ -133,11 +149,11 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 .ssel.pc{color:var(--pc-ink);font-weight:700}
 .ssel.blank:not(:focus){color:transparent}
 .ssel option{color:var(--ink);background:var(--surface)}
-.sertog{align-self:flex-start;border:1px solid transparent;background:none;border-radius:999px;font-size:12px;padding:2px 9px;color:var(--faint);margin:5px 4px 2px}
-.sertog:hover{border-color:var(--line-strong);color:var(--muted)}
-.sertog[aria-pressed="true"]{border-color:var(--bj-line);background:var(--bj-bg);color:var(--bj-ink);font-weight:600}
-.serf{display:flex;gap:4px}
-.serf .sno{width:44px;flex:none}
+.serf{display:flex;gap:4px;align-items:center}
+.serf .f{border-color:var(--line)}
+.serf .f:focus{border-color:var(--focus)}
+.serf .sno{width:46px;flex:none;text-align:right}
+.serf .gw{font-size:13px;color:var(--ink);flex:none;padding-right:2px}
 .del{white-space:nowrap}
 .f.caution.has{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)}
 .f.caution.has:focus{border-color:var(--focus)}
@@ -318,16 +334,9 @@ dialog::backdrop{background:rgba(20,18,28,.4)}
     </div>
     <div class="tools" id="tools">
       <div class="chips" id="brand-chips"></div>
-      <select class="sel" id="fstatus" aria-label="진행 상태로 모아 보기"></select>
+      <div class="fst" id="fst"><button type="button" class="sel fst-btn" id="fst-btn" aria-haspopup="true" aria-expanded="false"><span id="fst-t">진행 상태 전체</span><span class="cv" aria-hidden="true">▼</span></button><div class="fst-pop" id="fst-pop" hidden></div></div>
       <input class="search" id="q" type="search" placeholder="제목·저자·내용 검색" aria-label="검색">
-      <select class="sel" id="sort" aria-label="정렬">
-        <option value="desc">탈고일 최근순</option>
-        <option value="asc">탈고일 빠른순</option>
-        <option value="title">제목 가나다순</option>
-        <option value="author">저자 가나다순</option>
-        <option value="plan">출간 계획 빠른순</option>
-        <option value="order">입력한 순서</option>
-      </select>
+      <div class="sortbar" id="sort" role="group" aria-label="정렬"><span class="k">정렬</span><button type="button" class="chip" data-s="date">탈고일 <span class="ar"></span></button><button type="button" class="chip" data-s="title">제목 ㄱㄴㄷ</button><button type="button" class="chip" data-s="author">저자 ㄱㄴㄷ</button><button type="button" class="chip" data-s="plan">출간 계획순</button><button type="button" class="chip" data-s="order">입력순</button></div>
     </div>
   </div>
 
@@ -381,8 +390,8 @@ const WD=['일','월','화','수','목','금','토'];
 const DEL_ICON='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.8 6.5v4.5M9.2 6.5v4.5"/></svg>';
 
 const today=new Date(); today.setHours(0,0,0,0);
-const S={tree:{},mode:'loading',tab:'table',brand:'',q:'',sort:'desc',fresh:[],sel:'',pop:'',proot:{},fstatus:'',cal:{y:today.getFullYear(),m:today.getMonth()}};
-try{const t=localStorage.getItem('ms-tab'); if(t==='cal') S.tab='cal'; const s=localStorage.getItem('ms-sort'); if(['desc','asc','order','title','author','plan'].includes(s)) S.sort=s;}catch(e){}
+const S={tree:{},mode:'loading',tab:'table',brand:'',q:'',sort:'desc',fresh:[],sel:'',pop:'',proot:{},fst:[],cal:{y:today.getFullYear(),m:today.getMonth()}};
+try{const t=localStorage.getItem('ms-tab'); if(t==='cal') S.tab='cal'; const s=localStorage.getItem('ms-sort'); if(['desc','asc','order','title','author','plan'].includes(s)) S.sort=s; const f=JSON.parse(localStorage.getItem('ms-fst')||'[]'); if(Array.isArray(f)) S.fst=f.map(String);}catch(e){}
 if(location.hash==='#calendar') S.tab='cal';
 
 const $=(s,r=document)=>r.querySelector(s);
@@ -601,7 +610,7 @@ function visible(){
   return items().filter(it=>{
     if(S.brand==='none'&&it.brand) return false;
     if(S.brand&&S.brand!=='none'&&it.brand!==S.brand) return false;
-    if(S.fstatus){const st=(planOf(it)||{}).status||''; if(S.fstatus==='__none'?st!=='':st!==S.fstatus) return false}
+    if(S.fst.length){const st=(planOf(it)||{}).status||''; if(!S.fst.includes(st||'__none')) return false}
     if(q&&![it.title,it.author,it.progress,it.caution,BN[it.brand]||'',isPC(it)?'pc교정 진행중':'',statusName((planOf(it)||{}).status)].join(' ').toLowerCase().includes(q)) return false;
     return true;
   }).sort(cmp);
@@ -631,7 +640,7 @@ function makeRow(id){
     <div class="cell c-date"><span class="lbl">탈고일</span><input class="f date" data-f="date" placeholder="예) 26.10.19" inputmode="decimal" aria-label="탈고일 (예: 26.10.19)"><div class="dmeta"></div></div>
     <div class="cell c-plan"><span class="lbl">출간 계획</span><input class="f date" data-f="plan" placeholder="예) 26.12" inputmode="decimal" aria-label="출간 계획 (예: 26.12)"><div class="dmeta pmeta"></div></div>
     <div class="cell c-status"><span class="lbl">진행 상태</span><select class="ssel" data-pf="status" aria-label="진행 상태"></select></div>
-    <div class="cell c-series"><span class="lbl">시리즈</span><button type="button" class="sertog" data-sertog aria-pressed="false">시리즈</button><div class="serf" hidden><input class="f" data-pf="seriesName" placeholder="시리즈명" aria-label="시리즈명"><input class="f sno" data-pf="seriesNo" placeholder="권" inputmode="numeric" aria-label="시리즈 권수"></div></div>
+    <div class="cell c-series"><span class="lbl">시리즈</span><div class="serf"><input class="f" data-pf="seriesName" aria-label="시리즈 제목"><input class="f sno" data-pf="seriesNo" inputmode="numeric" aria-label="시리즈 권수"><span class="gw" aria-hidden="true">권</span></div></div>
     <div class="cell c-prog"><span class="lbl">진행 상황</span><button type="button" class="pcbadge" hidden title="누르면 PC 교정 중 표시를 지워요"><span class="t">PC 교정 중</span><span class="x" aria-hidden="true">×</span></button><textarea class="f" data-f="progress" rows="1" placeholder="진행 상황" aria-label="진행 상황"></textarea></div>
     <div class="cell c-caution"><span class="lbl" style="color:var(--warn-ink)">특별 주의사항</span><textarea class="f caution" data-f="caution" rows="1" placeholder="특별 주의사항" aria-label="특별 주의사항"></textarea></div>
     <div class="cell c-del"><button type="button" class="del" aria-label="이 원고 삭제">${DEL_ICON}삭제</button></div>`;
@@ -646,7 +655,6 @@ function fill(r,it){
   if(st.dataset.sig!==sig){st.innerHTML='<option value=""></option>'+sts.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join(''); st.dataset.sig=sig}
   if(st!==ae) st.value=pb?(pb.status||''):''; st.classList.toggle('pc',!!pcid&&st.value===pcid); st.classList.toggle('blank',!st.value);
   const star=$('.star',r); const on=!!(pb&&pb.star); star.setAttribute('aria-pressed',on); star.textContent=on?'★':'☆';
-  const ser=!!(pb&&pb.series); $('[data-sertog]',r).setAttribute('aria-pressed',ser); $('.serf',r).hidden=!ser;
   r.querySelectorAll('.serf [data-pf]').forEach(el=>{if(el===ae) return; const v=pb?String(pb[el.dataset.pf]??''):''; if(el.value!==v) el.value=v});
   r.querySelectorAll('[data-f]').forEach(el=>{
     const f=el.dataset.f; if(el===ae) return;
@@ -672,6 +680,7 @@ function renderTable(){
     if(cur!==list.map(i=>i.id).join(',')) list.forEach(it=>box.appendChild(rowEls.get(it.id)));
   }
   const all=items().length;
+  document.querySelectorAll('#sort [data-s]').forEach(b=>{const k=b.dataset.s; const on=k==='date'?(S.sort==='desc'||S.sort==='asc'):S.sort===k; b.setAttribute('aria-pressed',on); if(k==='date') $('.ar',b).textContent=S.sort==='asc'?'빠른순':'최근순'});
   document.querySelectorAll('.hs').forEach(b=>{const k=b.dataset.sort; const on=k==='date'?(S.sort==='desc'||S.sort==='asc'):S.sort===k; b.classList.toggle('on',on); $('.ar',b).textContent=on?(k==='date'&&S.sort==='desc'?'▼':'▲'):''});
   $('#count').textContent=S.mode==='loading'?'':(list.length===all?`모두 ${all}권`:`${all}권 중 ${list.length}권 표시`);
   let em=$('#empty');
@@ -757,13 +766,16 @@ function renderChips(){
   const all=items(); const n=b=>all.filter(i=>b==='none'?!i.brand:i.brand===b).length;
   const c=(v,label,dot,cnt)=>`<button type="button" class="chip" data-brand="${v}" aria-pressed="${S.brand===v}">${dot?`<span class="dot" style="background:var(--${dot}-solid)"></span>`:''}${label}${cnt!=null?` <span class="muted">${cnt}</span>`:''}</button>`;
   $('#brand-chips').innerHTML=c('','전체')+BRANDS.map(b=>c(b.id,b.name,b.id,n(b.id))).join('')+(n('none')?c('none','미정','none',n('none')):'');
-  const fs=$('#fstatus'); const stOf=i=>(planOf(i)||{}).status||'';
-  const none=all.filter(i=>!stOf(i)).length;
-  const html='<option value="">진행 상태 전체</option>'+statuses().map(x=>`<option value="${esc(x.id)}">${esc(x.name)} (${all.filter(i=>stOf(i)===x.id).length})</option>`).join('')+(none?`<option value="__none">진행 상태 없음 (${none})</option>`:'');
-  if(fs.dataset.h!==html){fs.innerHTML=html; fs.dataset.h=html}
-  fs.value=S.fstatus; if(fs.value!==S.fstatus){S.fstatus=''; fs.value=''}
-  fs.classList.toggle('on',!!S.fstatus);
+  const stOf=i=>(planOf(i)||{}).status||'';
+  const opts=statuses().map(x=>({id:x.id,name:x.name,n:all.filter(i=>stOf(i)===x.id).length})).concat([{id:'__none',name:'진행 상태 없음',n:all.filter(i=>!stOf(i)).length}]);
+  const ids=opts.map(o=>o.id); const keep=S.fst.filter(x=>ids.includes(x)); if(S.mode==='live'&&statuses().length&&keep.length!==S.fst.length){S.fst=keep; saveFst()}
+  const html=opts.map(o=>`<label><input type="checkbox" value="${esc(o.id)}" ${S.fst.includes(o.id)?'checked':''}>${esc(o.name)}<span class="n">${o.n}권</span></label>`).join('')+'<div class="ft"><button type="button" data-fst="clear">모두 해제</button><button type="button" data-fst="close">닫기</button></div>';
+  const pop=$('#fst-pop'); if(pop.dataset.h!==html){pop.innerHTML=html; pop.dataset.h=html}
+  const names=S.fst.map(id=>(opts.find(o=>o.id===id)||{}).name).filter(Boolean);
+  $('#fst-t').textContent=!names.length?'진행 상태 전체':names.length===1?names[0]:`${names[0]} 외 ${names.length-1}개`;
+  $('#fst-btn').classList.toggle('on',!!names.length);
 }
+function saveFst(){try{localStorage.setItem('ms-fst',JSON.stringify(S.fst))}catch(e){}}
 function setTab(t){
   S.tab=t; try{localStorage.setItem('ms-tab',t)}catch(e){}
   $('#tab-table').setAttribute('aria-selected',t==='table'); $('#tab-cal').setAttribute('aria-selected',t==='cal');
@@ -786,9 +798,16 @@ function bind(){
   $('#add-top').onclick=addItem; $('#add-bottom').onclick=addItem;
   $('#brand-chips').addEventListener('click',e=>{const b=e.target.closest('[data-brand]'); if(!b) return; S.brand=b.dataset.brand; S.fresh=[]; render()});
   $('#q').addEventListener('input',e=>{S.q=e.target.value; renderTable()});
-  const so=$('#sort'); so.value=S.sort; so.onchange=()=>{S.sort=so.value; S.fresh=[]; try{localStorage.setItem('ms-sort',S.sort)}catch(e){} renderTable()};
-  $('#grid').addEventListener('click',e=>{const h=e.target.closest('.hs'); if(!h) return; const k=h.dataset.sort; S.sort=k==='date'?(S.sort==='desc'?'asc':'desc'):k; so.value=S.sort; S.fresh=[]; try{localStorage.setItem('ms-sort',S.sort)}catch(e){} renderTable()});
-  $('#fstatus').onchange=e=>{S.fstatus=e.target.value; S.fresh=[]; render()};
+  const setSort=k=>{S.sort=k==='date'?(S.sort==='desc'?'asc':'desc'):k; S.fresh=[]; try{localStorage.setItem('ms-sort',S.sort)}catch(e){} renderTable()};
+  $('#sort').addEventListener('click',e=>{const b=e.target.closest('[data-s]'); if(b) setSort(b.dataset.s)});
+  $('#grid').addEventListener('click',e=>{const h=e.target.closest('.hs'); if(h) setSort(h.dataset.sort)});
+  const fpop=$('#fst-pop'), fbtn=$('#fst-btn');
+  const fOpen=o=>{fpop.hidden=!o; fbtn.setAttribute('aria-expanded',o)};
+  fbtn.onclick=()=>fOpen(fpop.hidden);
+  fpop.addEventListener('change',e=>{const c=e.target; if(c.type!=='checkbox') return; S.fst=[...fpop.querySelectorAll('input:checked')].map(x=>x.value); saveFst(); S.fresh=[]; render()});
+  fpop.addEventListener('click',e=>{const b=e.target.closest('[data-fst]'); if(!b) return; if(b.dataset.fst==='clear'){S.fst=[]; saveFst(); S.fresh=[]; render()} else fOpen(false)});
+  document.addEventListener('click',e=>{if(!fpop.hidden&&!e.target.closest('#fst')) fOpen(false)});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!fpop.hidden){fOpen(false); fbtn.focus()}});
   $('#cal-prev').onclick=()=>{const d=new Date(S.cal.y,S.cal.m-1,1); S.cal={y:d.getFullYear(),m:d.getMonth()}; renderCal()};
   $('#cal-next').onclick=()=>{const d=new Date(S.cal.y,S.cal.m+1,1); S.cal={y:d.getFullYear(),m:d.getMonth()}; renderCal()};
   $('#cal-today').onclick=()=>{S.cal={y:today.getFullYear(),m:today.getMonth()}; renderCal()};
@@ -808,9 +827,8 @@ function bind(){
     const d=e.target.closest('.del'); if(d){removeItem(d.closest('.row').dataset.id); return}
     const pcb=e.target.closest('.pcbadge'); if(pcb){const id=pcb.closest('.row').dataset.id; const first=(statuses()[0]||{}).id||''; if(pcStatusId()&&planOf(item(id))){planSet(id,{status:first},0); toast(`진행 상태를 ‘${statusName(first)||'처음 단계'}’(으)로 바꿨어요.`)} else {saveField(id,'pc',false,0); render()} return}
     const sb=e.target.closest('[data-star]'); if(sb){const id=sb.closest('.row').dataset.id; const pb=planOf(item(id)); planSet(id,{star:!(pb&&pb.star)},0); return}
-    const tg=e.target.closest('[data-sertog]'); if(tg){const r=tg.closest('.row'); const id=r.dataset.id; const pb=planOf(item(id)); const on=!(pb&&pb.series); planSet(id,{series:on},0).then(()=>{if(on){const i=$('.serf [data-pf=seriesName]',rowEls.get(id)); if(i) i.focus()}}); return}
   });
-  box.addEventListener('input',e=>{const el=e.target; const pf=el.dataset.pf; if(!pf||pf==='status') return; if(pf==='seriesNo'){const v=el.value.replace(/\D/g,''); if(v!==el.value) el.value=v} planSet(el.closest('.row').dataset.id,{[pf]:el.value},600)});
+  box.addEventListener('input',e=>{const el=e.target; const pf=el.dataset.pf; if(!pf||pf==='status') return; if(pf==='seriesNo'){const v=el.value.replace(/\D/g,''); if(v!==el.value) el.value=v} const r=el.closest('.row'); const nm=$('[data-pf=seriesName]',r).value.trim(), no=$('[data-pf=seriesNo]',r).value.trim(); planSet(r.dataset.id,{[pf]:el.value,series:!!(nm||no)},600)});
   box.addEventListener('change',e=>{const el=e.target; if(el.dataset.pf!=='status') return; el.classList.toggle('blank',!el.value); el.classList.toggle('pc',!!pcStatusId()&&el.value===pcStatusId()); planSet(el.closest('.row').dataset.id,{status:el.value},0)});
   box.addEventListener('compositionend',e=>{const el=e.target; if(el.dataset&&el.dataset.f==='progress') checkPC(el)});
   box.addEventListener('input',e=>{
