@@ -434,7 +434,7 @@ function realItems(){const o=S.tree.items||{}; return Object.keys(o).filter(k=>o
 function virtualItems(){
   if(!S.planReady) return [];
   const bs=planBooks(); const own=S.tree.items||{}; const linked=new Set();
-  realItems().forEach(it=>{if(it.planId) linked.add(it.planId); const pb=planOf(it); if(pb) linked.add(pb.id)});
+  realItems().forEach(it=>{if(it.planId) linked.add(it.planId); asArr(it.planMore).forEach(b=>linked.add(b)); const pb=planOf(it); if(pb) linked.add(pb.id)});
   const out=[];
   for(const bid in bs){const b=bs[bid]; if(!b||linked.has(bid)||own['p_'+bid]) continue;
     out.push(Object.assign({},DEF,{id:'p_'+bid,planId:bid,title:b.title||'',author:b.author||'',brand:b.brand||'',order:Date.parse(b.createdAt||'')||0,virtual:true}))}
@@ -463,7 +463,7 @@ function saveField(id,field,val,delay){
   materialize(id);
   if(field==='title'){const old=item(id); if(old&&(!old.planId||!planBooks()[old.planId])){const pb=planOf(old); if(pb){localSet(id,{planId:pb.id}); queue('i:'+id,()=>fb('/items/'+id,'PATCH',{planId:pb.id})).catch(fail)}}}
   localSet(id,{[field]:val});
-  if(['title','author','brand'].includes(field)){const it=item(id); const bs=planBooks(); if(it&&it.planId&&bs[it.planId]){bs[it.planId][field]=val; const pid=it.planId; clearTimeout(timers['p:'+pid+field]); timers['p:'+pid+field]=setTimeout(()=>queue('p:'+pid,()=>pfb('/books/'+pid,'PATCH',{[field]:val})).catch(fail),delay||0)}}
+  if(['title','author','brand'].includes(field)){const it=item(id); const bs=planBooks(); if(it){planMoreIds(it).forEach(b=>{bs[b][field]=val; clearTimeout(timers['p:'+b+field]); timers['p:'+b+field]=setTimeout(()=>queue('p:'+b,()=>pfb('/books/'+b,'PATCH',{[field]:val})).catch(fail),delay||0)})} if(it&&it.planId&&bs[it.planId]){bs[it.planId][field]=val; const pid=it.planId; clearTimeout(timers['p:'+pid+field]); timers['p:'+pid+field]=setTimeout(()=>queue('p:'+pid,()=>pfb('/books/'+pid,'PATCH',{[field]:val})).catch(fail),delay||0)}}
   const k=id+':'+field; clearTimeout(timers[k]);
   const go=()=>queue('i:'+id,()=>fb('/items/'+id,'PATCH',{[field]:val})).catch(fail);
   if(delay) timers[k]=setTimeout(go,delay); else go();
@@ -495,7 +495,7 @@ function planOf(it){
   const bs=planBooks();
   if(it.planId){if(bs[it.planId]) return Object.assign({},bs[it.planId],{id:it.planId}); if(!S.planReady||it.virtual) return null}
   const t=norm(it.title); if(!t) return null;
-  const used=new Set(realItems().filter(x=>x.id!==it.id).map(x=>x.planId).filter(Boolean));
+  const used=new Set(realItems().filter(x=>x.id!==it.id).map(x=>x.planId).filter(Boolean)); realItems().forEach(x=>asArr(x.planMore).forEach(b=>used.add(b)));
   let exact=null; const near=[];
   for(const id in bs){const b=bs[id]; if(!b||used.has(id)) continue; const bt=norm(b.title); if(!bt) continue;
     if(bt===t){exact=id; break}
@@ -532,6 +532,31 @@ async function planSet(id,patch,delay){
 function planKey(it){const pb=planOf(it); const m=pb?Number(pb.month)||0:0; return m?Number(pb.year)*100+m:0}
 function writingStatusId(){const x=statuses().find(s=>/원고\s*작성/.test(s.name)); return x?x.id:''}
 function planInput(pb){if(!pb) return ''; const m=Number(pb.month)||0; return m?`${String(pb.year).slice(2)}.${pad(m)}`:''}
+function planMoreIds(it){const bs=planBooks(); return asArr(it&&it.planMore).filter(b=>bs[b])}
+function planAll(it){const pb=planOf(it); if(!pb) return []; const bs=planBooks(); return [pb].concat(planMoreIds(it).map(b=>Object.assign({},bs[b],{id:b})))}
+function planInputAll(it){return planAll(it).map(planInput).filter(Boolean).join('\n')}
+function parsePlanList(txt){
+  let toks=String(txt||'').split(/[,\n;]+/).map(t=>t.trim()).filter(Boolean);
+  toks=toks.flatMap(t=>{const ps=t.split(/\s+/); return ps.length>1&&ps.every(x=>/^\d{2,4}[.\-\/]\d{1,2}월?$/.test(x))?ps:[t]});
+  const out=[]; for(const t of toks){const p=parsePlan(t); if(!p.ok||p.clear) return {ok:false}; if(!out.some(o=>o.y===p.y&&o.m===p.m)) out.push(p)}
+  out.sort((a,b)=>a.y-b.y||a.m-b.m); return {ok:true,items:out};
+}
+function newBid(){return 'b'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+async function setPlanMulti(id,ps){
+  if(!S.planReady){toast('출간 계획표를 불러오는 중이에요. 잠시 후 다시 해 주세요.'); return}
+  await setPlan(id,ps[0]||{ok:true,clear:true});
+  const it=item(id); if(!it) return; const pb=planOf(it); const more=planMoreIds(it);
+  if(!pb||(ps.length<=1&&!more.length)) return;
+  for(const p of ps.slice(1)) await ensureYear(p.y);
+  materialize(id); const bs=planBooks(); const now=new Date().toISOString(); const next=[];
+  ps.slice(1).forEach((p,i)=>{const bid=more[i];
+    if(bid){const b=bs[bid]; const oy=Number(b.year), om=Number(b.month)||0; if(oy!==p.y||om!==p.m){const nb=Object.assign({},b); nb.year=p.y; nb.month=p.m; nb.history=[...asArr(b.history),{from:{y:oy,m:om},to:{y:p.y,m:p.m},at:now}].slice(-20); putPlan(bid,nb)} next.push(bid)}
+    else{const src=bs[pb.id]||{}; const nid=newBid()+i; putPlan(nid,{year:p.y,month:p.m,title:src.title||it.title,author:src.author||it.author,contractDate:src.contractDate||'',brand:src.brand||it.brand,genre:src.genre||'',status:src.status||'',star:!!src.star,series:true,seriesName:src.seriesName||'',seriesNo:'',tentative:false,memo:'',history:[],createdAt:now}); next.push(nid)}
+  });
+  more.slice(Math.max(ps.length-1,0)).forEach(bid=>{delete bs[bid]; queue('p:'+bid,()=>pfb('/books/'+bid,'DELETE')).catch(fail)});
+  saveField(id,'planMore',next,0); render();
+  if(ps.length>1){showPlanYear(ps[0].y); toast(`출간 계획표에 ${ps.length}번의 출간 일정으로 반영했어요.`)}
+}
 function planText(pb){if(!pb) return ''; const m=Number(pb.month)||0; return m?`${pb.year}년 ${m}월`:`${pb.year}년 · 출간월 미정`}
 function parsePlan(txt){
   const s=String(txt||'').trim(); if(!s) return {ok:true,clear:true};
@@ -594,14 +619,17 @@ function removeItem(id){
   const name=cur.title||'제목 없는 원고';
   const raw=(S.tree.items||{})[id]; const snap=raw?clone(raw):null;
   const pid=strong?pbx.id:null; const bsnap=pid?clone(planBooks()[pid]||{}):null;
+  const more=pid?planMoreIds(cur):[]; const msnap=more.map(b=>[b,clone(planBooks()[b])]);
   if(!snap&&!pid) return;
   if(snap){delete S.tree.items[id]; for(const k in timers) if(k.startsWith(id+':')) clearTimeout(timers[k])}
   if(pid){delete planBooks()[pid]; for(const k in timers) if(k.startsWith('pf:'+pid+':')||k.startsWith('p:'+pid)) clearTimeout(timers[k])}
   S.fresh=S.fresh.filter(x=>x!==id); render();
   if(snap) queue('i:'+id,()=>fb('/items/'+id,'DELETE')).catch(fail);
   if(pid) queue('p:'+pid,()=>pfb('/books/'+pid,'DELETE')).catch(fail);
+  more.forEach(b=>{delete planBooks()[b]; queue('p:'+b,()=>pfb('/books/'+b,'DELETE')).catch(fail)}); if(more.length) render();
   toast(pid?`『${name}』을(를) 원고 진행 상황과 출간 계획표에서 삭제했어요.`:`『${name}』을(를) 삭제했어요.`,'되돌리기',()=>{
     if(pid){planBooks()[pid]=bsnap; queue('p:'+pid,()=>pfb('/books/'+pid,'PUT',bsnap)).catch(fail)}
+    msnap.forEach(([b,v])=>{planBooks()[b]=v; queue('p:'+b,()=>pfb('/books/'+b,'PUT',v)).catch(fail)});
     if(snap){localSet(id,snap); queue('i:'+id,()=>fb('/items/'+id,'PUT',snap)).catch(fail)}
     render(); toast('되돌렸어요.');
   });
@@ -641,7 +669,7 @@ function makeRow(id){
     <div class="cell c-title"><span class="lbl">제목</span><div class="tline"><button type="button" class="star" data-star aria-pressed="false" aria-label="주력 도서" title="주력 도서">☆</button><input class="f title" data-f="title" placeholder="제목" aria-label="제목"></div></div>
     <div class="cell c-author"><span class="lbl">저자</span><input class="f" data-f="author" placeholder="저자" aria-label="저자"></div>
     <div class="cell c-date"><span class="lbl">탈고일</span><input class="f date" data-f="date" placeholder="예) 26.10.19" inputmode="decimal" aria-label="탈고일 (예: 26.10.19)"><div class="dmeta"></div></div>
-    <div class="cell c-plan"><span class="lbl">출간 계획</span><input class="f date" data-f="plan" placeholder="예) 26.12" inputmode="decimal" aria-label="출간 계획 (예: 26.12)"><div class="dmeta pmeta"></div></div>
+    <div class="cell c-plan"><span class="lbl">출간 계획</span><textarea class="f date" data-f="plan" rows="1" placeholder="예) 26.12" inputmode="decimal" aria-label="출간 계획 (예: 26.12, 시리즈는 여러 개)"></textarea><div class="dmeta pmeta"></div></div>
     <div class="cell c-status"><span class="lbl">진행 상태</span><select class="ssel" data-pf="status" aria-label="진행 상태"></select></div>
     <div class="cell c-series"><span class="lbl">시리즈</span><div class="serf"><input class="f" data-pf="seriesName" aria-label="시리즈 제목"><input class="f sno" data-pf="seriesNo" inputmode="numeric" aria-label="시리즈 권수"><span class="gw" aria-hidden="true">권</span></div></div>
     <div class="cell c-prog"><span class="lbl">진행 상황</span><button type="button" class="pcbadge" hidden title="누르면 PC 교정 중 표시를 지워요"><span class="t">PC 교정 중</span><span class="x" aria-hidden="true">×</span></button><textarea class="f" data-f="progress" rows="1" placeholder="진행 상황" aria-label="진행 상황"></textarea></div>
@@ -661,7 +689,7 @@ function fill(r,it){
   r.querySelectorAll('.serf [data-pf]').forEach(el=>{if(el===ae) return; const v=pb?String(pb[el.dataset.pf]??''):''; if(el.value!==v) el.value=v});
   r.querySelectorAll('[data-f]').forEach(el=>{
     const f=el.dataset.f; if(el===ae) return;
-    if(f==='plan'){const v=planInput(pb); if(el.value!==v) el.value=v; el.classList.remove('bad'); el.classList.toggle('linked',!!v); const m=$('.pmeta',r); m.classList.remove('err'); m.textContent=''; return}
+    if(f==='plan'){const v=planInputAll(it); if(el.value!==v) el.value=v; el.classList.remove('bad'); el.classList.toggle('linked',!!v); const m=$('.pmeta',r); m.classList.remove('err'); m.textContent=''; autosize(el); return}
     const v=f==='date'?short(it.date):(it[f]||'');
     if(el.value!==v) el.value=v;
     if(f==='date'){el.classList.remove('bad'); const m=$('.dmeta',r); m.classList.remove('err'); m.innerHTML=dmeta(it.date)}
@@ -721,7 +749,7 @@ function detailGrid(it){
   return `<div class="dt-grid">
       <div><div class="dt-k">저자</div><div class="dt-v">${esc(it.author)||'<span class="muted">—</span>'}</div></div>
       <div><div class="dt-k">탈고일</div><div class="dt-v">${it.date?short(it.date)+(dm?`<span class="dd">${dm.replace(/<[^>]+>/g,'')}</span>`:''):'<span class="muted">미정</span>'}</div></div>
-      <div><div class="dt-k">출간 계획</div><div class="dt-v">${planText(planOf(it))||'<span class="muted">—</span>'}</div></div>
+      <div><div class="dt-k">출간 계획</div><div class="dt-v">${planAll(it).map(planText).join('\n')||'<span class="muted">—</span>'}</div></div>
       <div><div class="dt-k">진행 상태</div><div class="dt-v">${(()=>{const pb=planOf(it); const n=pb?statusName(pb.status):''; return isPC(it)?`<span class="pcbadge" style="margin:0;padding-right:7px">${esc(n||'PC 교정 중')}</span>`:(n?esc(n):'<span class="muted">—</span>')})()}</div></div>
       <div><div class="dt-k">주력 도서</div><div class="dt-v">${(planOf(it)||{}).star?'<span style="color:var(--star)">★</span> 주력':'<span class="muted">—</span>'}</div></div>
       <div><div class="dt-k">시리즈</div><div class="dt-v">${(()=>{const pb=planOf(it)||{}; if(!pb.series) return '<span class="muted">—</span>'; return esc([pb.seriesName,pb.seriesNo?pb.seriesNo+'권':''].filter(Boolean).join(' · ')||'시리즈')})()}</div></div>
@@ -832,7 +860,7 @@ function bind(){
     r.dataset.brand=el.value||'none'; saveField(r.dataset.id,'brand',el.value,0); renderChips();
   });
   box.addEventListener('keydown',e=>{
-    if(e.key==='Enter'&&e.target.tagName==='INPUT'&&!e.isComposing){e.preventDefault(); e.target.blur()}
+    if(e.key==='Enter'&&!e.isComposing&&(e.target.tagName==='INPUT'||e.target.dataset.f==='plan')){e.preventDefault(); e.target.blur()}
   });
   box.addEventListener('focusout',e=>{
     const el=e.target; const f=el.dataset.f; if(!f) return; const r=el.closest('.row'); const id=r.dataset.id;
@@ -843,10 +871,12 @@ function bind(){
       const prev=(item(id)||{}).date||'';
       if(p.iso!==prev){saveField(id,'date',p.iso,0)}
     } else if(f==='plan'){
-      const p=parsePlan(el.value); const m=$('.pmeta',r);
-      if(!p.ok){el.classList.add('bad'); m.classList.remove('linked'); m.classList.add('err'); m.textContent='예) 26.12'; return}
-      el.value=p.clear?'':`${String(p.y).slice(2)}.${pad(p.m)}`;
-      setPlan(id,p);
+      const L=parsePlanList(el.value); const m=$('.pmeta',r);
+      if(!L.ok){el.classList.add('bad'); m.classList.remove('linked'); m.classList.add('err'); m.textContent='예) 26.12'; return}
+      const cur=item(id); const pbn=cur?planOf(cur):null;
+      if(L.items.length>1&&!(pbn&&pbn.series)){el.classList.add('bad'); m.classList.add('err'); m.textContent='시리즈 칸을 채우면 여러 개 쓸 수 있어요'; toast('출간 계획 날짜를 여러 개 쓰려면 먼저 시리즈 칸에 시리즈 제목을 적어 주세요.'); return}
+      el.value=L.items.map(p=>`${String(p.y).slice(2)}.${pad(p.m)}`).join('\n'); autosize(el);
+      setPlanMulti(id,L.items);
     } else if(f!=='brand'){
       const k=id+':'+f; if(timers[k]){clearTimeout(timers[k]); delete timers[k]; saveField(id,f,el.value,0)}
     }
