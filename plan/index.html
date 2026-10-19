@@ -224,12 +224,18 @@ dialog::backdrop{background:rgba(20,18,30,.45)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--btn);color:var(--btn-ink);padding:10px 16px;border-radius:10px;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:50;max-width:calc(100vw - 32px)}
 .loading{padding:40px;text-align:center;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* app tabs */
+.apptabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 18px;overflow-x:auto}
+.apptab{padding:10px 18px 11px;font-size:16px;font-weight:700;color:var(--muted);text-decoration:none;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.apptab:hover{color:var(--ink)}
+.apptab[aria-current="page"]{color:var(--ink);border-bottom-color:var(--ink)}
 </style>
 
 <style>html{color-scheme:light dark}body{margin:0}[hidden]{display:none!important}</style>
 </head>
 <body>
 <div class="wrap">
+  <nav class="apptabs" aria-label="메뉴"><a class="apptab" href="../plan/" aria-current="page">출간 계획표</a><a class="apptab" href="../progress/">원고 진행 상황</a></nav>
   <header class="top">
     <div class="brandline">
       <h1><span class="yr" id="h-year">—</span>년 출간 계획표</h1>
