@@ -572,12 +572,14 @@ function parsePlan(txt){
 }
 async function ensureYear(y){
   if(asArr((S.proot.settings||{}).years).map(Number).includes(y)) return;
-  let cur=[]; try{cur=asArr(await (await fetch(PB+'/settings/years.json',{cache:'no-store'})).json()).map(Number)}catch(e){}
-  if(!cur.length) cur=[2027];
+  let cur=null; try{const r=await fetch(PB+'/settings/years.json',{cache:'no-store'}); if(r.ok) cur=asArr(await r.json()).map(Number).filter(n=>!isNaN(n))}catch(e){}
+  if(!cur) cur=asArr((S.proot.settings||{}).years).map(Number);
+  if(!cur.length) cur=[...new Set(Object.values(planBooks()).map(b=>Number(b&&b.year)).filter(n=>n>=2000))];
   if(cur.includes(y)) return;
   const ys=[...cur,y].sort((a,b)=>a-b);
   S.proot.settings=S.proot.settings||{}; S.proot.settings.years=ys;
   await pfb('/settings/years','PUT',ys).catch(fail);
+  toast(`출간 계획표에 ${y}년을 새로 만들었어요.`);
 }
 function putPlan(pid,nb){planBooks()[pid]=nb; render(); queue('p:'+pid,()=>pfb('/books/'+pid,'PUT',nb)).catch(fail)}
 function showPlanYear(y){try{const f=window.parent&&window.parent!==window&&window.parent.document.getElementById('v-plan'); if(f&&f.contentWindow) f.contentWindow.postMessage({type:'plan-year',y},'*')}catch(e){}}
