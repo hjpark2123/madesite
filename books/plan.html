@@ -426,7 +426,7 @@ function cardHTML(b){
       <button type="button" class="star-btn ${b.star?'on':''}" data-star="${b.id}" aria-pressed="${!!b.star}" aria-label="주력 도서 표시">${b.star?'★':'☆'}</button></span></div>
     <h3 class="c-title">${esc(b.title||'제목 없음')}</h3>
     <div class="c-meta">${meta}</div>
-    <div class="c-tags">${b.series?`<span class="tag series">시리즈${b.seriesName?' · '+esc(b.seriesName):''}${W(b)>1?' · '+W(b)+'권':''}</span>`:''}${b.tentative?'<span class="tag tentag">일정 미정</span>':''}${mv?`<span class="tag moved" title="출간월 변경">${mv}</span>`:''}</div>
+    <div class="c-tags">${b.series?`<span class="tag series">시리즈${b.seriesName?' · '+esc(b.seriesName):''}${W(b)>1?' · '+W(b)+'권':''}</span>`:''}${b.tentative?'<span class="tag tentag">일정 미정</span>':''}</div>
   </article>`;
 }
 function monthSection(m,list,all){
