@@ -15,6 +15,7 @@
   --focus:#7B5CD6; --danger:#C0392B; --danger-bg:#FDF0EE; --danger-line:#F1C4BD;
   --warn-bg:#FFF4EC; --warn-line:#F4CFB4; --warn-ink:#A1460E;
   --today:#7B5CD6; --sun:#C0392B; --sat:#3A63B8;
+  --pc-ink:#1F5FD1; --pc-bg:#EEF4FF; --pc-line:#C9DAFB;
   --hj-bg:#FEF7FA; --hj-line:#F5D6E3; --hj-ink:#B02C63; --hj-solid:#F07AAB;
   --dd-bg:#FFFCEC; --dd-line:#F1E3A6; --dd-ink:#7E6100; --dd-solid:#F5CF2E;
   --bj-bg:#F9F6FE; --bj-line:#DFD3F4; --bj-ink:#5F3AAE; --bj-solid:#9A74E0;
@@ -29,7 +30,7 @@
     --ink:#EEEDF3; --muted:#A7A3B5; --faint:#7A7689; --btn:#E9E6F5; --btn-ink:#1B1A22;
     --focus:#A98BF0; --danger:#F07A6A; --danger-bg:#2E1F1F; --danger-line:#5A3330;
     --warn-bg:#2B2119; --warn-line:#5A3F2A; --warn-ink:#F5B183;
-    --today:#A98BF0; --sun:#F07A6A; --sat:#8EA9EA;
+    --today:#A98BF0; --sun:#F07A6A; --sat:#8EA9EA; --pc-ink:#8FB4FF; --pc-bg:#1C2436; --pc-line:#34466B;
     --hj-bg:#282026; --hj-line:#4E3643; --hj-ink:#F6A8C8; --hj-solid:#E0679A;
     --dd-bg:#27251D; --dd-line:#4C4630; --dd-ink:#F3D768; --dd-solid:#D6B226;
     --bj-bg:#24212E; --bj-line:#443B5C; --bj-ink:#C8B2F5; --bj-solid:#8E6AD8;
@@ -42,7 +43,7 @@
   --ink:#EEEDF3; --muted:#A7A3B5; --faint:#7A7689; --btn:#E9E6F5; --btn-ink:#1B1A22;
   --focus:#A98BF0; --danger:#F07A6A; --danger-bg:#2E1F1F; --danger-line:#5A3330;
   --warn-bg:#2B2119; --warn-line:#5A3F2A; --warn-ink:#F5B183;
-  --today:#A98BF0; --sun:#F07A6A; --sat:#8EA9EA;
+  --today:#A98BF0; --sun:#F07A6A; --sat:#8EA9EA; --pc-ink:#8FB4FF; --pc-bg:#1C2436; --pc-line:#34466B;
   --hj-bg:#282026; --hj-line:#4E3643; --hj-ink:#F6A8C8; --hj-solid:#E0679A;
   --dd-bg:#27251D; --dd-line:#4C4630; --dd-ink:#F3D768; --dd-solid:#D6B226;
   --bj-bg:#24212E; --bj-line:#443B5C; --bj-ink:#C8B2F5; --bj-solid:#8E6AD8;
@@ -111,6 +112,9 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 .dmeta.err{color:var(--danger)}
 .f.caution.has{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)}
 .f.caution.has:focus{border-color:var(--focus)}
+.pcbadge{align-self:flex-start;display:inline-flex;align-items:center;gap:3px;border:1px solid var(--pc-line);background:var(--pc-bg);color:var(--pc-ink);font-size:12px;font-weight:700;border-radius:5px;padding:1px 4px 1px 7px;margin:2px 6px 0;line-height:1.5}
+.pcbadge .x{font-weight:400;opacity:.55;padding:0 2px}
+.pcbadge:hover .x{opacity:1}
 .bsel{appearance:none;-webkit-appearance:none;border:1px solid var(--none-line);background:var(--none-bg);color:var(--none-ink);border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;width:100%;min-height:30px;cursor:pointer;text-align:center;text-align-last:center}
 .row[data-brand="hj"] .bsel{background:var(--hj-bg);border-color:var(--hj-line);color:var(--hj-ink)}
 .row[data-brand="dd"] .bsel{background:var(--dd-bg);border-color:var(--dd-line);color:var(--dd-ink)}
@@ -178,6 +182,9 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 .ev{border:1px solid var(--none-line);background:var(--none-bg);color:var(--none-ink);border-radius:6px;padding:3px 6px;font-size:12px;text-align:left;width:100%;min-width:0;display:flex;align-items:center;gap:5px;line-height:1.35}
 .ev .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
 .ev .w{width:7px;height:7px;border-radius:50%;background:var(--warn-ink);flex:none}
+.ev .pc{font-size:10px;font-weight:700;color:var(--pc-ink);flex:none}
+.ag-pc-title,.ag-pc-title b{color:var(--pc-ink)!important}
+.ag-date.none{color:var(--faint);font-weight:400}
 .ev.hj{background:var(--hj-bg);border-color:var(--hj-line);color:var(--hj-ink)}
 .ev.dd{background:var(--dd-bg);border-color:var(--dd-line);color:var(--dd-ink)}
 .ev.bj{background:var(--bj-bg);border-color:var(--bj-line);color:var(--bj-ink)}
@@ -188,12 +195,12 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
   .ev .w{display:none}
   .dn{font-size:11.5px;width:20px;height:20px}
 }
-.agenda{margin-top:18px;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px}
+.agenda{margin-top:18px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
 @media (max-width:860px){.agenda{grid-template-columns:minmax(0,1fr)}}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
 .panel h2{font-size:15px;margin:0 0 10px;font-weight:700}
 .panel h2 b{color:var(--focus)}
-.ag-item{display:grid;grid-template-columns:52px minmax(0,1fr);gap:4px 12px;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;text-align:left;background:none;border-left:0;border-right:0;border-bottom:0;width:100%}
+.ag-item{display:grid;grid-template-columns:64px minmax(0,1fr);gap:4px 12px;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;text-align:left;background:none;border-left:0;border-right:0;border-bottom:0;width:100%}
 .ag-item:first-of-type{border-top:0}
 .ag-item:hover .ag-title{text-decoration:underline}
 .ag-date{font-variant-numeric:tabular-nums;font-weight:600;color:var(--muted);font-size:13px}
@@ -283,12 +290,13 @@ dialog::backdrop{background:rgba(20,18,28,.4)}
         <span><i style="background:var(--dd-solid)"></i>다정다감</span>
         <span><i style="background:var(--bj-solid)"></i>북장단</span>
         <span><i style="background:var(--warn-ink);border-radius:50%"></i>특별 주의사항 있음</span>
+        <span><b style="color:var(--pc-ink);font-size:11px">PC</b>PC교정 진행중</span>
       </div>
     </div>
     <div class="cal" id="cal"></div>
     <div class="agenda">
-      <div class="panel" id="ag-month"></div>
-      <div class="panel" id="ag-undated"></div>
+      <div class="panel" id="ag-pc"></div>
+      <div class="panel" id="ag-rest"></div>
     </div>
   </section>
 </div>
@@ -341,7 +349,7 @@ function dmeta(iso){
 }
 
 /* ---------- data ---------- */
-const DEF={brand:'',title:'',author:'',date:'',progress:'',caution:'',order:0};
+const DEF={brand:'',title:'',author:'',date:'',progress:'',caution:'',order:0,pc:false};
 function items(){const o=S.tree.items||{}; return Object.keys(o).filter(k=>o[k]).map(id=>Object.assign({},DEF,o[id],{id}))}
 function item(id){const v=(S.tree.items||{})[id]; return v?Object.assign({},DEF,v,{id}):null}
 
@@ -362,6 +370,17 @@ function saveField(id,field,val,delay){
   if(delay) timers[k]=setTimeout(go,delay); else go();
 }
 
+const PC_RE=/p\s*c\s*교\s*정\s*진\s*행\s*중/i;
+function stripPC(v){return v.replace(PC_RE,'').replace(/^[ \t]*[\/·,\-][ \t]*/,'').replace(/[ \t]*[\/·,][ \t]*$/,'').replace(/[ \t]*\/[ \t]*\/[ \t]*/g,' / ').replace(/^\s*\n/,'').trim()}
+function checkPC(el){
+  if(!PC_RE.test(el.value)) return false;
+  const r=el.closest('.row'); const id=r.dataset.id; const nv=stripPC(el.value);
+  el.value=nv; autosize(el); $('.pcbadge',r).hidden=false;
+  const k=id+':progress'; clearTimeout(timers[k]); delete timers[k];
+  localSet(id,{progress:nv,pc:true});
+  queue('i:'+id,()=>fb('/items/'+id,'PATCH',{progress:nv,pc:true})).catch(fail);
+  return true;
+}
 function addItem(){
   const id=uid();
   const data=Object.assign({},DEF,{order:Date.now(),createdAt:new Date().toISOString(),brand:S.brand&&S.brand!=='none'?S.brand:''});
@@ -390,7 +409,7 @@ function visible(){
   return items().filter(it=>{
     if(S.brand==='none'&&it.brand) return false;
     if(S.brand&&S.brand!=='none'&&it.brand!==S.brand) return false;
-    if(q&&![it.title,it.author,it.progress,it.caution,BN[it.brand]||''].join(' ').toLowerCase().includes(q)) return false;
+    if(q&&![it.title,it.author,it.progress,it.caution,BN[it.brand]||'',it.pc?'pc교정 진행중':''].join(' ').toLowerCase().includes(q)) return false;
     return true;
   }).sort(cmp);
 }
@@ -413,7 +432,7 @@ function makeRow(id){
     <div class="cell c-title"><span class="lbl">제목</span><input class="f title" data-f="title" placeholder="제목" aria-label="제목"></div>
     <div class="cell c-author"><span class="lbl">저자</span><input class="f" data-f="author" placeholder="저자" aria-label="저자"></div>
     <div class="cell c-date"><span class="lbl">탈고일</span><input class="f date" data-f="date" placeholder="예) 26.10.19" inputmode="decimal" aria-label="탈고일 (예: 26.10.19)"><div class="dmeta"></div></div>
-    <div class="cell c-prog"><span class="lbl">진행 상황</span><textarea class="f" data-f="progress" rows="1" placeholder="진행 상황" aria-label="진행 상황"></textarea></div>
+    <div class="cell c-prog"><span class="lbl">진행 상황</span><button type="button" class="pcbadge" hidden title="누르면 표시를 지워요">PC교정 진행중<span class="x" aria-hidden="true">×</span></button><textarea class="f" data-f="progress" rows="1" placeholder="진행 상황" aria-label="진행 상황"></textarea></div>
     <div class="cell c-caution"><span class="lbl" style="color:var(--warn-ink)">특별 주의사항</span><textarea class="f caution" data-f="caution" rows="1" placeholder="특별 주의사항" aria-label="특별 주의사항"></textarea></div>
     <div class="cell c-del"><button type="button" class="del" aria-label="이 원고 삭제">${DEL_ICON}삭제</button></div>`;
   return r;
@@ -421,6 +440,7 @@ function makeRow(id){
 function fill(r,it){
   const ae=document.activeElement;
   r.dataset.brand=it.brand||'none';
+  $('.pcbadge',r).hidden=!it.pc;
   r.querySelectorAll('[data-f]').forEach(el=>{
     const f=el.dataset.f; if(el===ae) return;
     const v=f==='date'?short(it.date):(it[f]||'');
@@ -470,17 +490,16 @@ function renderCal(){
     h+=`<div class="${cls.join(' ')}"><span class="dn">${d.getDate()}</span>${evs}</div>`;
   }
   $('#cal').innerHTML=h+'</div>';
-  const pre=`${y}-${pad(m+1)}-`;
-  const mon=all.filter(it=>it.date.startsWith(pre)).sort((a,b)=>a.date.localeCompare(b.date)||(a.order||0)-(b.order||0));
-  $('#ag-month').innerHTML=`<h2>${m+1}월 탈고 <b>${mon.length}</b>권</h2>`+(mon.length?mon.map(agHTML).join(''):'<p class="muted">이 달에 탈고일이 잡힌 원고가 없어요.</p>');
-  const und=all.filter(it=>!it.date).sort((a,b)=>(a.order||0)-(b.order||0));
-  $('#ag-undated').innerHTML=`<h2>탈고일 미정 <b>${und.length}</b>권</h2>`+(und.length?`<div class="undated">${und.map(evHTML).join('')}</div>`:'<p class="muted">모든 원고에 탈고일이 있어요.</p>');
+  const ord=(a,b)=>{if(a.date&&!b.date) return -1; if(!a.date&&b.date) return 1; if(a.date!==b.date) return b.date.localeCompare(a.date); return (a.order||0)-(b.order||0)};
+  const pcs=all.filter(it=>it.pc).sort(ord), rest=all.filter(it=>!it.pc).sort(ord);
+  $('#ag-pc').innerHTML=`<h2 class="ag-pc-title">PC교정 진행중 <b>${pcs.length}</b>권</h2>`+(pcs.length?pcs.map(agHTML).join(''):'<p class="muted">진행 상황에 ‘PC교정 진행중’이라고 적으면 여기에 모여요.</p>');
+  $('#ag-rest').innerHTML=`<h2>그 외 <b>${rest.length}</b>권</h2>`+(rest.length?rest.map(agHTML).join(''):'<p class="muted">모든 원고가 PC교정 진행중이에요.</p>');
 }
-function evHTML(it){return `<button type="button" class="ev ${it.brand||''}" data-open="${it.id}" title="${esc((it.title||'제목 없음')+(it.author?' · '+it.author:''))}"><span class="t">${esc(it.title||'제목 없음')}</span>${it.caution.trim()?'<span class="w" aria-label="특별 주의사항 있음"></span>':''}</button>`}
+function evHTML(it){return `<button type="button" class="ev ${it.brand||''}" data-open="${it.id}" title="${esc((it.title||'제목 없음')+(it.author?' · '+it.author:''))}">${it.pc?'<span class="pc">PC</span>':''}<span class="t">${esc(it.title||'제목 없음')}</span>${it.caution.trim()?'<span class="w" aria-label="특별 주의사항 있음"></span>':''}</button>`}
 function agHTML(it){
-  const dt=toDate(it.date); const past=dt<today;
+  const past=it.date?toDate(it.date)<today:false;
   return `<button type="button" class="ag-item" data-open="${it.id}">
-    <span class="ag-date ${past?'past':''}">${it.date.slice(5,7)}.${it.date.slice(8,10)}</span>
+    <span class="ag-date ${it.date?(past?'past':''):'none'}">${it.date?short(it.date):'미정'}</span>
     <span class="ag-main">
       <span class="ag-line"><span class="pill ${it.brand||''}">${BN[it.brand]||'미정'}</span><span class="ag-title">${esc(it.title||'제목 없음')}</span><span class="ag-author">${esc(it.author)}</span></span>
       ${it.progress.trim()?`<span class="ag-note">${esc(it.progress)}</span>`:''}
@@ -495,7 +514,7 @@ function openDetail(id){
     <dl class="kv">
       <dt>저자</dt><dd>${esc(it.author)||'<span class="muted">—</span>'}</dd>
       <dt>탈고일</dt><dd>${it.date?`${short(it.date)}`:'<span class="muted">미정</span>'}</dd>
-      <dt>진행 상황</dt><dd>${esc(it.progress)||'<span class="muted">—</span>'}</dd>
+      <dt>진행 상황</dt><dd>${it.pc?'<span class="pcbadge" style="margin:0 0 4px;padding-right:7px">PC교정 진행중</span>\n':''}${esc(it.progress)||(it.pc?'':'<span class="muted">—</span>')}</dd>
       <dt style="color:var(--warn-ink)">특별 주의사항</dt><dd>${it.caution.trim()?`<span class="ag-warn" style="display:inline-block">${esc(it.caution)}</span>`:'<span class="muted">—</span>'}</dd>
     </dl></div>
     <div class="dlg-foot"><button type="button" class="btn sm" id="dlg-close">닫기</button><button type="button" class="btn sm primary" id="dlg-edit">표에서 고치기</button></div>`;
@@ -546,13 +565,15 @@ function bind(){
   $('#dlg').addEventListener('click',e=>{if(e.target===e.currentTarget) e.currentTarget.close()});
 
   const box=$('#rows');
-  box.addEventListener('click',e=>{const d=e.target.closest('.del'); if(d) removeItem(d.closest('.row').dataset.id)});
+  box.addEventListener('click',e=>{const d=e.target.closest('.del'); if(d){removeItem(d.closest('.row').dataset.id); return} const pb=e.target.closest('.pcbadge'); if(pb){const r=pb.closest('.row'); pb.hidden=true; saveField(r.dataset.id,'pc',false,0); toast('PC교정 진행중 표시를 지웠어요.')}});
+  box.addEventListener('compositionend',e=>{const el=e.target; if(el.dataset&&el.dataset.f==='progress') checkPC(el)});
   box.addEventListener('input',e=>{
     const el=e.target; const f=el.dataset.f; if(!f) return; const id=el.closest('.row').dataset.id;
     if(el.tagName==='TEXTAREA') autosize(el);
     if(f==='caution') el.classList.toggle('has',!!el.value.trim());
     if(f==='date'){el.classList.remove('bad'); const m=$('.dmeta',el.closest('.row')); m.classList.remove('err'); return}
     if(f==='brand') return;
+    if(f==='progress'&&!e.isComposing&&checkPC(el)) return;
     saveField(id,f,el.value,500);
   });
   box.addEventListener('change',e=>{
