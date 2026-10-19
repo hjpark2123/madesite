@@ -89,8 +89,8 @@ h1{font-family:var(--font-display);font-weight:700;font-size:30px;margin:0;lette
 
 /* table */
 .sheet{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow-x:auto}
-.grid{min-width:1040px}
-.row{display:grid;grid-template-columns:108px minmax(170px,1.25fr) minmax(96px,.7fr) 124px minmax(230px,2fr) minmax(190px,1.45fr) 78px;border-bottom:1px solid var(--line);align-items:stretch}
+.grid{min-width:1140px}
+.row{display:grid;grid-template-columns:108px minmax(170px,1.25fr) minmax(96px,.7fr) 124px 104px minmax(230px,2fr) minmax(190px,1.45fr) 78px;border-bottom:1px solid var(--line);align-items:stretch}
 .row:last-child{border-bottom:0}
 .head{background:var(--surface-2);color:var(--muted);font-size:12.5px;font-weight:600;letter-spacing:.02em}
 .head>div{padding:10px 10px}
@@ -110,6 +110,7 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 .dmeta{font-size:11.5px;color:var(--muted);padding:0 8px;font-variant-numeric:tabular-nums;min-height:17px}
 .dmeta .dd{color:var(--focus);font-weight:600}
 .dmeta.err{color:var(--danger)}
+.dmeta.linked{color:var(--pc-ink)}
 .f.caution.has{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)}
 .f.caution.has:focus{border-color:var(--focus)}
 .pcbadge{align-self:flex-start;display:inline-flex;align-items:center;gap:3px;border:1px solid var(--pc-line);background:var(--pc-bg);color:var(--pc-ink);font-size:12px;font-weight:700;border-radius:5px;padding:1px 4px 1px 7px;margin:2px 6px 0;line-height:1.5}
@@ -153,6 +154,7 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
   .f.title{font-size:16px}
   .c-author{grid-column:1}
   .c-date{grid-column:2}
+  .c-plan{grid-column:1}
   .c-prog,.c-caution{grid-column:1/-1}
   .addrow{border:1px dashed var(--line-strong);border-radius:12px;background:var(--surface)}
 }
@@ -302,7 +304,7 @@ dialog::backdrop{background:rgba(20,18,28,.4)}
     <div class="sheet">
       <div class="grid" id="grid">
         <div class="row head" role="row">
-          <div>브랜드</div><div>제목</div><div>저자</div><div>탈고일</div><div>진행 상황</div><div class="h-caution">특별 주의사항</div><div></div>
+          <div>브랜드</div><div>제목</div><div>저자</div><div>탈고일</div><div>출간 계획</div><div>진행 상황</div><div class="h-caution">특별 주의사항</div><div></div>
         </div>
         <div id="rows"></div>
         <div class="addrow"><button type="button" id="add-bottom">＋ 새 원고 추가</button></div>
@@ -347,7 +349,7 @@ const WD=['일','월','화','수','목','금','토'];
 const DEL_ICON='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.8 6.5v4.5M9.2 6.5v4.5"/></svg>';
 
 const today=new Date(); today.setHours(0,0,0,0);
-const S={tree:{},mode:'loading',tab:'table',brand:'',q:'',sort:'desc',fresh:[],sel:'',pop:'',cal:{y:today.getFullYear(),m:today.getMonth()}};
+const S={tree:{},mode:'loading',tab:'table',brand:'',q:'',sort:'desc',fresh:[],sel:'',pop:'',proot:{},cal:{y:today.getFullYear(),m:today.getMonth()}};
 try{const t=localStorage.getItem('ms-tab'); if(t==='cal') S.tab='cal'; const s=localStorage.getItem('ms-sort'); if(['desc','asc','order'].includes(s)) S.sort=s;}catch(e){}
 if(location.hash==='#calendar') S.tab='cal';
 
@@ -397,7 +399,9 @@ function fail(e){console.error(e); toast(e&&(e.status===401||e.status===403)?'�
 function localSet(id,patch){S.tree.items=S.tree.items||{}; S.tree.items[id]=Object.assign({},S.tree.items[id]||{},patch)}
 const timers={};
 function saveField(id,field,val,delay){
+  if(field==='title'){const old=item(id); if(old&&!old.planId){const pb=planOf(old); if(pb){localSet(id,{planId:pb.id}); queue('i:'+id,()=>fb('/items/'+id,'PATCH',{planId:pb.id})).catch(fail)}}}
   localSet(id,{[field]:val});
+  if(['title','author','brand'].includes(field)){const it=item(id); const bs=planBooks(); if(it&&it.planId&&bs[it.planId]){bs[it.planId][field]=val; const pid=it.planId; clearTimeout(timers['p:'+pid+field]); timers['p:'+pid+field]=setTimeout(()=>queue('p:'+pid,()=>pfb('/books/'+pid,'PATCH',{[field]:val})).catch(fail),delay||0)}}
   const k=id+':'+field; clearTimeout(timers[k]);
   const go=()=>queue('i:'+id,()=>fb('/items/'+id,'PATCH',{[field]:val})).catch(fail);
   if(delay) timers[k]=setTimeout(go,delay); else go();
@@ -413,6 +417,69 @@ function checkPC(el){
   localSet(id,{progress:nv,pc:true});
   queue('i:'+id,()=>fb('/items/'+id,'PATCH',{progress:nv,pc:true})).catch(fail);
   return true;
+}
+/* ---------- 출간 계획표 연동 ---------- */
+const PB='https://checkingword-8cf0d-default-rtdb.firebaseio.com/publishplan';
+async function pfb(path,method,body){
+  const r=await fetch(PB+path+'.json',{method,headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
+  if(!r.ok){const e=new Error('HTTP '+r.status); e.status=r.status; throw e}
+  return r;
+}
+const asArr=v=>Array.isArray(v)?v.filter(x=>x!=null):(v&&typeof v==='object'?Object.values(v):[]);
+const norm=t=>String(t||'').replace(/\s+/g,'').toLowerCase();
+function planBooks(){S.proot.books=S.proot.books||{}; return S.proot.books}
+function planOf(it){
+  const bs=planBooks();
+  if(it.planId&&bs[it.planId]) return Object.assign({},bs[it.planId],{id:it.planId});
+  if(it.planId||!String(it.title||'').trim()) return null;
+  const t=norm(it.title);
+  for(const id in bs){const b=bs[id]; if(b&&norm(b.title)===t) return Object.assign({},b,{id})}
+  return null;
+}
+function planInput(pb){if(!pb) return ''; const m=Number(pb.month)||0; return m?`${String(pb.year).slice(2)}.${pad(m)}`:''}
+function planText(pb){if(!pb) return ''; const m=Number(pb.month)||0; return m?`${pb.year}년 ${m}월`:`${pb.year}년 · 출간월 미정`}
+function parsePlan(txt){
+  const s=String(txt||'').trim(); if(!s) return {ok:true,clear:true};
+  let mt,y,m;
+  if((mt=s.match(/^(\d{2}|\d{4})\s*[.\-\/년\s]\s*(\d{1,2})\s*월?(?:\s*[.\-\/]\s*\d{1,2}\s*일?)?\.?$/))){y=+mt[1];m=+mt[2]}
+  else if((mt=s.match(/^(\d{1,2})\s*월?$/))){y=today.getFullYear();m=+mt[1]}
+  else if(/^\d{4}$/.test(s)){y=+s.slice(0,2);m=+s.slice(2)}
+  else if(/^\d{6}$/.test(s)){y=+s.slice(0,2);m=+s.slice(2,4)}
+  else return {ok:false};
+  if(y<100) y+=2000;
+  if(!(m>=1&&m<=12)) return {ok:false};
+  return {ok:true,y,m};
+}
+async function ensureYear(y){
+  if(asArr((S.proot.settings||{}).years).map(Number).includes(y)) return;
+  let cur=[]; try{cur=asArr(await (await fetch(PB+'/settings/years.json',{cache:'no-store'})).json()).map(Number)}catch(e){}
+  if(!cur.length) cur=[2027];
+  if(cur.includes(y)) return;
+  const ys=[...cur,y].sort((a,b)=>a-b);
+  S.proot.settings=S.proot.settings||{}; S.proot.settings.years=ys;
+  await pfb('/settings/years','PUT',ys).catch(fail);
+}
+function putPlan(pid,nb){planBooks()[pid]=nb; render(); queue('p:'+pid,()=>pfb('/books/'+pid,'PUT',nb)).catch(fail)}
+async function setPlan(id,p){
+  const it=item(id); if(!it) return; const pb=planOf(it); const now=new Date().toISOString();
+  if(p.clear){
+    if(pb&&Number(pb.month)){const nb=Object.assign({},pb); delete nb.id; const y=Number(pb.year); nb.history=[...asArr(pb.history),{from:{y,m:Number(pb.month)},to:{y,m:0},at:now}].slice(-20); nb.month=0; putPlan(pb.id,nb); toast('출간 계획표에서 출간월을 미정으로 바꿨어요.')}
+    return;
+  }
+  await ensureYear(p.y);
+  if(pb){
+    if(!it.planId) saveField(id,'planId',pb.id,0);
+    const oy=Number(pb.year), om=Number(pb.month)||0;
+    if(oy===p.y&&om===p.m) return;
+    const nb=Object.assign({},pb); delete nb.id; nb.year=p.y; nb.month=p.m;
+    nb.history=[...asArr(pb.history),{from:{y:oy,m:om},to:{y:p.y,m:p.m},at:now}].slice(-20);
+    putPlan(pb.id,nb); toast(`출간 계획표에 ${p.y}년 ${p.m}월로 반영했어요.`);
+  } else {
+    const st=asArr((S.proot.settings||{}).statuses);
+    const nid='b'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+    const nb={year:p.y,month:p.m,title:it.title,author:it.author,contractDate:'',brand:it.brand,genre:'',status:(st[0]&&st[0].id)||'s1',star:false,series:false,seriesName:'',seriesNo:'',tentative:false,memo:'',history:[],createdAt:now};
+    saveField(id,'planId',nid,0); putPlan(nid,nb); toast(`출간 계획표 ${p.y}년 ${p.m}월에 새로 넣었어요.`);
+  }
 }
 function addItem(){
   const id=uid();
@@ -465,6 +532,7 @@ function makeRow(id){
     <div class="cell c-title"><span class="lbl">제목</span><input class="f title" data-f="title" placeholder="제목" aria-label="제목"></div>
     <div class="cell c-author"><span class="lbl">저자</span><input class="f" data-f="author" placeholder="저자" aria-label="저자"></div>
     <div class="cell c-date"><span class="lbl">탈고일</span><input class="f date" data-f="date" placeholder="예) 26.10.19" inputmode="decimal" aria-label="탈고일 (예: 26.10.19)"><div class="dmeta"></div></div>
+    <div class="cell c-plan"><span class="lbl">출간 계획</span><input class="f date" data-f="plan" placeholder="예) 26.12" inputmode="decimal" aria-label="출간 계획 (예: 26.12)"><div class="dmeta pmeta"></div></div>
     <div class="cell c-prog"><span class="lbl">진행 상황</span><button type="button" class="pcbadge" hidden title="누르면 표시를 지워요">PC교정 진행중<span class="x" aria-hidden="true">×</span></button><textarea class="f" data-f="progress" rows="1" placeholder="진행 상황" aria-label="진행 상황"></textarea></div>
     <div class="cell c-caution"><span class="lbl" style="color:var(--warn-ink)">특별 주의사항</span><textarea class="f caution" data-f="caution" rows="1" placeholder="특별 주의사항" aria-label="특별 주의사항"></textarea></div>
     <div class="cell c-del"><button type="button" class="del" aria-label="이 원고 삭제">${DEL_ICON}삭제</button></div>`;
@@ -476,6 +544,7 @@ function fill(r,it){
   $('.pcbadge',r).hidden=!it.pc;
   r.querySelectorAll('[data-f]').forEach(el=>{
     const f=el.dataset.f; if(el===ae) return;
+    if(f==='plan'){const pb=planOf(it); const v=planInput(pb); if(el.value!==v) el.value=v; el.classList.remove('bad'); const m=$('.pmeta',r); m.classList.remove('err'); m.classList.toggle('linked',!!pb); m.textContent=pb?(Number(pb.month)?'계획표 연결됨':'계획표: 출간월 미정'):''; return}
     const v=f==='date'?short(it.date):(it[f]||'');
     if(el.value!==v) el.value=v;
     if(f==='date'){el.classList.remove('bad'); const m=$('.dmeta',r); m.classList.remove('err'); m.innerHTML=dmeta(it.date)}
@@ -543,6 +612,7 @@ function detailGrid(it){
   return `<div class="dt-grid">
       <div><div class="dt-k">저자</div><div class="dt-v">${esc(it.author)||'<span class="muted">—</span>'}</div></div>
       <div><div class="dt-k">탈고일</div><div class="dt-v">${it.date?short(it.date)+(dm?`<span class="dd">${dm.replace(/<[^>]+>/g,'')}</span>`:''):'<span class="muted">미정</span>'}</div></div>
+      <div><div class="dt-k">출간 계획</div><div class="dt-v">${planText(planOf(it))||'<span class="muted">—</span>'}</div></div>
       <div><div class="dt-k">진행 단계</div><div class="dt-v">${it.pc?'<span class="pcbadge" style="margin:0;padding-right:7px">PC교정 진행중</span>':'<span class="muted">—</span>'}</div></div>
       <div class="wide"><div class="dt-k">진행 상황</div><div class="dt-v">${esc(it.progress)||'<span class="muted">—</span>'}</div></div>
       <div class="wide"><div class="dt-k warn">특별 주의사항</div><div class="dt-v">${it.caution.trim()?`<span class="ag-warn" style="display:inline-block">${esc(it.caution)}</span>`:'<span class="muted">—</span>'}</div></div>
@@ -619,6 +689,7 @@ function bind(){
     if(el.tagName==='TEXTAREA') autosize(el);
     if(f==='caution') el.classList.toggle('has',!!el.value.trim());
     if(f==='date'){el.classList.remove('bad'); const m=$('.dmeta',el.closest('.row')); m.classList.remove('err'); return}
+    if(f==='plan'){el.classList.remove('bad'); const m=$('.pmeta',el.closest('.row')); m.classList.remove('err'); return}
     if(f==='brand') return;
     if(f==='progress'&&!e.isComposing&&checkPC(el)) return;
     saveField(id,f,el.value,500);
@@ -638,6 +709,11 @@ function bind(){
       el.value=short(p.iso); m.innerHTML=dmeta(p.iso);
       const prev=(item(id)||{}).date||'';
       if(p.iso!==prev){saveField(id,'date',p.iso,0)}
+    } else if(f==='plan'){
+      const p=parsePlan(el.value); const m=$('.pmeta',r);
+      if(!p.ok){el.classList.add('bad'); m.classList.remove('linked'); m.classList.add('err'); m.textContent='예) 26.12'; return}
+      el.value=p.clear?'':`${String(p.y).slice(2)}.${pad(p.m)}`;
+      setPlan(id,p);
     } else if(f!=='brand'){
       const k=id+':'+f; if(timers[k]){clearTimeout(timers[k]); delete timers[k]; saveField(id,f,el.value,0)}
     }
@@ -646,18 +722,19 @@ function bind(){
 }
 
 /* ---------- realtime ---------- */
-function applyEvent(path,data,merge){
+function applyEvent(path,data,merge){S.tree=applyTo(S.tree,path,data,merge)}
+function applyTo(root,path,data,merge){
   const segs=path.split('/').filter(Boolean);
   if(!segs.length){
-    if(merge){for(const k in data){if(data[k]===null) delete S.tree[k]; else S.tree[k]=data[k]}}
-    else S.tree=data&&typeof data==='object'?data:{};
-    return;
+    if(merge){for(const k in data){if(data[k]===null) delete root[k]; else root[k]=data[k]} return root}
+    return data&&typeof data==='object'?data:{};
   }
-  let o=S.tree;
+  let o=root;
   for(let i=0;i<segs.length-1;i++){if(!o[segs[i]]||typeof o[segs[i]]!=='object') o[segs[i]]={}; o=o[segs[i]]}
   const k=segs[segs.length-1];
   if(merge){if(!o[k]||typeof o[k]!=='object') o[k]={}; for(const kk in data){if(data[kk]===null) delete o[k][kk]; else o[k][kk]=data[kk]}}
   else {if(data===null) delete o[k]; else o[k]=data}
+  return root;
 }
 
 /* 처음 한 번만: 기존 노션 표의 원고를 옮겨 넣기 */
@@ -703,6 +780,8 @@ function boot(){
   es.addEventListener('cancel',()=>{setLive('off','읽기 권한 없음'); $('#banner').innerHTML='<div class="banner">표를 읽을 권한이 없어요. 파이어베이스 규칙을 확인해 주세요.</div>'});
   es.onerror=()=>{if(S.mode==='live'){setLive('off','다시 연결하는 중')}};
   es.onopen=()=>{if(S.mode==='live') setLive('live','실시간 저장 중')};
+  let es2; try{es2=new EventSource(PB+'.json')}catch(e){es2=null}
+  if(es2){const on2=merge=>ev=>{let p; try{p=JSON.parse(ev.data)}catch(e){return} if(!p) return; if((p.path||'').startsWith('/manuscripts')) return; S.proot=applyTo(S.proot,p.path||'/',p.data,merge); if(S.proot.manuscripts) delete S.proot.manuscripts; render()}; es2.addEventListener('put',on2(false)); es2.addEventListener('patch',on2(true))}
 }
 boot();
 })();
