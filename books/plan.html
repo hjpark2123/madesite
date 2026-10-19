@@ -704,10 +704,12 @@ function syncFromTree(){
   const bs=tree.books||{};
   for(const id in bs){const v=bs[id]; if(!v) continue; const b=Object.assign({author:'',contractDate:'',brand:'',genre:'',status:'',star:false,series:false,seriesName:'',seriesNo:'',tentative:false,memo:'',month:0},clone(v),{id}); b.history=asArr(b.history); b.year=Number(b.year); b.month=Number(b.month)||0; m.set(id,b)}
   S.books=m;
+  for(const b of m.values()){if(b.year>=2000&&b.year<2100&&!S.settings.years.includes(b.year)) S.settings.years.push(b.year)}
+  if(S.wantYear&&S.settings.years.includes(S.wantYear)){S.year=S.wantYear; S.month=0; S.wantYear=null}
 }
 function boot(){
   bind(); render();
-  window.addEventListener('message',e=>{const d=e.data; if(!d||d.type!=='plan-year') return; const y=Number(d.y); if(S.settings.years.includes(y)&&S.year!==y){S.year=y; S.month=0; render()}});
+  window.addEventListener('message',e=>{const d=e.data; if(!d||d.type!=='plan-year') return; const y=Number(d.y); if(S.settings.years.includes(y)){if(S.year!==y){S.year=y; S.month=0; render()}} else S.wantYear=y});
   let es;
   try{es=new EventSource(FB+'.json')}catch(e){es=null}
   if(!es){$('#banner').innerHTML='<div class="banner">이 브라우저에서는 실시간 연결을 쓸 수 없어요.</div>'; return}
