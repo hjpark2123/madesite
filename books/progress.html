@@ -590,21 +590,20 @@ function addItem(){
 }
 function removeItem(id){
   const cur=item(id); if(!cur) return; const pbx=planOf(cur);
-  if(pbx){
-    const name=cur.title||'제목 없는 원고'; materialize(id); const pid=pbx.id;
-    localSet(id,{hidden:true,planId:pid}); S.fresh=S.fresh.filter(x=>x!==id); render();
-    queue('i:'+id,()=>fb('/items/'+id,'PATCH',{hidden:true,planId:pid})).catch(fail);
-    toast(`『${name}』을(를) 원고 진행 상황에서 뺐어요. 출간 계획표에는 그대로 있어요.`,'되돌리기',()=>{localSet(id,{hidden:false}); render(); queue('i:'+id,()=>fb('/items/'+id,'PATCH',{hidden:false})).catch(fail); toast('되돌렸어요.')});
-    return;
-  }
-  const it=(S.tree.items||{})[id]; if(!it) return;
-  const snap=clone(it); const name=it.title||'제목 없는 원고';
-  delete S.tree.items[id]; S.fresh=S.fresh.filter(x=>x!==id);
-  for(const k in timers) if(k.startsWith(id+':')) clearTimeout(timers[k]);
-  render();
-  queue('i:'+id,()=>fb('/items/'+id,'DELETE')).catch(fail);
-  toast(`『${name}』을(를) 삭제했어요.`,'되돌리기',()=>{
-    localSet(id,snap); render(); queue('i:'+id,()=>fb('/items/'+id,'PUT',snap)).catch(fail); toast('되돌렸어요.');
+  const strong=!!pbx&&(cur.planId===pbx.id||norm(pbx.title)===norm(cur.title));
+  const name=cur.title||'제목 없는 원고';
+  const raw=(S.tree.items||{})[id]; const snap=raw?clone(raw):null;
+  const pid=strong?pbx.id:null; const bsnap=pid?clone(planBooks()[pid]||{}):null;
+  if(!snap&&!pid) return;
+  if(snap){delete S.tree.items[id]; for(const k in timers) if(k.startsWith(id+':')) clearTimeout(timers[k])}
+  if(pid){delete planBooks()[pid]; for(const k in timers) if(k.startsWith('pf:'+pid+':')||k.startsWith('p:'+pid)) clearTimeout(timers[k])}
+  S.fresh=S.fresh.filter(x=>x!==id); render();
+  if(snap) queue('i:'+id,()=>fb('/items/'+id,'DELETE')).catch(fail);
+  if(pid) queue('p:'+pid,()=>pfb('/books/'+pid,'DELETE')).catch(fail);
+  toast(pid?`『${name}』을(를) 원고 진행 상황과 출간 계획표에서 삭제했어요.`:`『${name}』을(를) 삭제했어요.`,'되돌리기',()=>{
+    if(pid){planBooks()[pid]=bsnap; queue('p:'+pid,()=>pfb('/books/'+pid,'PUT',bsnap)).catch(fail)}
+    if(snap){localSet(id,snap); queue('i:'+id,()=>fb('/items/'+id,'PUT',snap)).catch(fail)}
+    render(); toast('되돌렸어요.');
   });
 }
 
