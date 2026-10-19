@@ -101,6 +101,7 @@ h1{font-family:var(--font-display);font-weight:700;font-size:30px;margin:0;lette
 .f:hover{background:var(--surface-2)}
 .f:focus{background:var(--surface);border-color:var(--focus);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
 .f::placeholder{color:var(--faint)}
+.f:not(:focus)::placeholder{color:transparent}
 textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 .f.title{font-weight:600}
 .f.date{font-variant-numeric:tabular-nums;letter-spacing:.01em}
@@ -114,6 +115,10 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 .row[data-brand="hj"] .bsel{background:var(--hj-bg);border-color:var(--hj-line);color:var(--hj-ink)}
 .row[data-brand="dd"] .bsel{background:var(--dd-bg);border-color:var(--dd-line);color:var(--dd-ink)}
 .row[data-brand="bj"] .bsel{background:var(--bj-bg);border-color:var(--bj-line);color:var(--bj-ink)}
+.row[data-brand="none"] .bsel{background:transparent;border-color:transparent;color:transparent}
+.row[data-brand="none"] .bsel:hover{border-color:var(--line-strong)}
+.row[data-brand="none"] .bsel:focus{border-color:var(--focus);color:var(--muted)}
+.bsel option{color:var(--ink);background:var(--surface)}
 .del{border:1px solid var(--danger-line);background:var(--danger-bg);color:var(--danger);border-radius:7px;font-size:13px;font-weight:600;padding:5px 8px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;gap:4px;width:100%}
 .del:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
 .del svg{width:14px;height:14px;flex:none}
@@ -188,7 +193,7 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
 .panel h2{font-size:15px;margin:0 0 10px;font-weight:700}
 .panel h2 b{color:var(--focus)}
-.ag-item{display:grid;grid-template-columns:86px minmax(0,1fr);gap:4px 12px;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;text-align:left;background:none;border-left:0;border-right:0;border-bottom:0;width:100%}
+.ag-item{display:grid;grid-template-columns:52px minmax(0,1fr);gap:4px 12px;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;text-align:left;background:none;border-left:0;border-right:0;border-bottom:0;width:100%}
 .ag-item:first-of-type{border-top:0}
 .ag-item:hover .ag-title{text-decoration:underline}
 .ag-date{font-variant-numeric:tabular-nums;font-weight:600;color:var(--muted);font-size:13px}
@@ -332,7 +337,7 @@ function dmeta(iso){
   if(!iso) return '';
   const dt=toDate(iso); const diff=Math.round((dt-today)/86400000);
   let dd=''; if(diff===0) dd='<span class="dd">오늘</span>'; else if(diff>0) dd=`<span class="dd">D-${diff}</span>`;
-  return `${WD[dt.getDay()]}요일${dd?' · '+dd:''}`;
+  return dd;
 }
 
 /* ---------- data ---------- */
@@ -475,7 +480,7 @@ function evHTML(it){return `<button type="button" class="ev ${it.brand||''}" dat
 function agHTML(it){
   const dt=toDate(it.date); const past=dt<today;
   return `<button type="button" class="ag-item" data-open="${it.id}">
-    <span class="ag-date ${past?'past':''}">${it.date.slice(5,7)}.${it.date.slice(8,10)} (${WD[dt.getDay()]})</span>
+    <span class="ag-date ${past?'past':''}">${it.date.slice(5,7)}.${it.date.slice(8,10)}</span>
     <span class="ag-main">
       <span class="ag-line"><span class="pill ${it.brand||''}">${BN[it.brand]||'미정'}</span><span class="ag-title">${esc(it.title||'제목 없음')}</span><span class="ag-author">${esc(it.author)}</span></span>
       ${it.progress.trim()?`<span class="ag-note">${esc(it.progress)}</span>`:''}
@@ -489,7 +494,7 @@ function openDetail(id){
     <h3>${esc(it.title||'제목 없음')}</h3>
     <dl class="kv">
       <dt>저자</dt><dd>${esc(it.author)||'<span class="muted">—</span>'}</dd>
-      <dt>탈고일</dt><dd>${it.date?`${short(it.date)} (${WD[toDate(it.date).getDay()]})`:'<span class="muted">미정</span>'}</dd>
+      <dt>탈고일</dt><dd>${it.date?`${short(it.date)}`:'<span class="muted">미정</span>'}</dd>
       <dt>진행 상황</dt><dd>${esc(it.progress)||'<span class="muted">—</span>'}</dd>
       <dt style="color:var(--warn-ink)">특별 주의사항</dt><dd>${it.caution.trim()?`<span class="ag-warn" style="display:inline-block">${esc(it.caution)}</span>`:'<span class="muted">—</span>'}</dd>
     </dl></div>
