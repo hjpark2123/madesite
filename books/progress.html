@@ -403,8 +403,25 @@ function dmeta(iso){
 
 /* ---------- data ---------- */
 const DEF={brand:'',title:'',author:'',date:'',progress:'',caution:'',order:0,pc:false};
-function items(){const o=S.tree.items||{}; return Object.keys(o).filter(k=>o[k]).map(id=>Object.assign({},DEF,o[id],{id}))}
-function item(id){const v=(S.tree.items||{})[id]; return v?Object.assign({},DEF,v,{id}):null}
+function realItems(){const o=S.tree.items||{}; return Object.keys(o).filter(k=>o[k]).map(id=>Object.assign({},DEF,o[id],{id}))}
+/* 계획표에만 있는 책도 원고 진행 상황에 줄로 보여 주기 (고치면 그때 저장) */
+function virtualItems(){
+  if(!S.planReady) return [];
+  const bs=planBooks(); const own=S.tree.items||{}; const linked=new Set();
+  realItems().forEach(it=>{if(it.planId) linked.add(it.planId); const pb=planOf(it); if(pb) linked.add(pb.id)});
+  const out=[];
+  for(const bid in bs){const b=bs[bid]; if(!b||linked.has(bid)||own['p_'+bid]) continue;
+    out.push(Object.assign({},DEF,{id:'p_'+bid,planId:bid,title:b.title||'',author:b.author||'',brand:b.brand||'',order:Date.parse(b.createdAt||'')||0,virtual:true}))}
+  return out;
+}
+function items(){return realItems().filter(x=>!x.hidden).concat(virtualItems())}
+function item(id){const v=(S.tree.items||{})[id]; if(v) return Object.assign({},DEF,v,{id}); return virtualItems().find(x=>x.id===id)||null}
+function materialize(id){
+  if(!String(id).startsWith('p_')||(S.tree.items||{})[id]) return;
+  const v=item(id); if(!v) return;
+  const base={planId:v.planId,title:v.title,author:v.author,brand:v.brand,order:v.order||Date.now(),createdAt:new Date().toISOString()};
+  localSet(id,base); queue('i:'+id,()=>fb('/items/'+id,'PATCH',base)).catch(fail);
+}
 
 const chains={};
 function queue(k,fn){const p=(chains[k]||Promise.resolve()).then(fn,fn); chains[k]=p.catch(()=>{}); return p}
@@ -417,7 +434,8 @@ function fail(e){console.error(e); toast(e&&(e.status===401||e.status===403)?'�
 function localSet(id,patch){S.tree.items=S.tree.items||{}; S.tree.items[id]=Object.assign({},S.tree.items[id]||{},patch)}
 const timers={};
 function saveField(id,field,val,delay){
-  if(field==='title'){const old=item(id); if(old&&!old.planId){const pb=planOf(old); if(pb){localSet(id,{planId:pb.id}); queue('i:'+id,()=>fb('/items/'+id,'PATCH',{planId:pb.id})).catch(fail)}}}
+  materialize(id);
+  if(field==='title'){const old=item(id); if(old&&(!old.planId||!planBooks()[old.planId])){const pb=planOf(old); if(pb){localSet(id,{planId:pb.id}); queue('i:'+id,()=>fb('/items/'+id,'PATCH',{planId:pb.id})).catch(fail)}}}
   localSet(id,{[field]:val});
   if(['title','author','brand'].includes(field)){const it=item(id); const bs=planBooks(); if(it&&it.planId&&bs[it.planId]){bs[it.planId][field]=val; const pid=it.planId; clearTimeout(timers['p:'+pid+field]); timers['p:'+pid+field]=setTimeout(()=>queue('p:'+pid,()=>pfb('/books/'+pid,'PATCH',{[field]:val})).catch(fail),delay||0)}}
   const k=id+':'+field; clearTimeout(timers[k]);
@@ -429,7 +447,7 @@ const PC_RE=/p\s*c\s*교\s*정\s*진\s*행\s*중/i;
 function stripPC(v){return v.replace(PC_RE,'').replace(/^[ \t]*[\/·,\-][ \t]*/,'').replace(/[ \t]*[\/·,][ \t]*$/,'').replace(/[ \t]*\/[ \t]*\/[ \t]*/g,' / ').replace(/^\s*\n/,'').trim()}
 function checkPC(el){
   if(!PC_RE.test(el.value)) return false;
-  const r=el.closest('.row'); const id=r.dataset.id; const nv=stripPC(el.value);
+  const r=el.closest('.row'); const id=r.dataset.id; materialize(id); const nv=stripPC(el.value);
   el.value=nv; autosize(el); $('.pcbadge',r).hidden=false;
   const k=id+':progress'; clearTimeout(timers[k]); delete timers[k];
   const pid=pcStatusId();
@@ -449,9 +467,9 @@ const norm=t=>String(t||'').replace(/\s+/g,'').toLowerCase();
 function planBooks(){S.proot.books=S.proot.books||{}; return S.proot.books}
 function planOf(it){
   const bs=planBooks();
-  if(it.planId) return bs[it.planId]?Object.assign({},bs[it.planId],{id:it.planId}):null;
+  if(it.planId){if(bs[it.planId]) return Object.assign({},bs[it.planId],{id:it.planId}); if(!S.planReady||it.virtual) return null}
   const t=norm(it.title); if(!t) return null;
-  const used=new Set(items().map(x=>x.planId).filter(Boolean));
+  const used=new Set(realItems().filter(x=>x.id!==it.id).map(x=>x.planId).filter(Boolean));
   let exact=null; const near=[];
   for(const id in bs){const b=bs[id]; if(!b||used.has(id)) continue; const bt=norm(b.title); if(!bt) continue;
     if(bt===t){exact=id; break}
@@ -469,7 +487,7 @@ function ensurePlan(id){
   if(creating[id]) return creating[id];
   creating[id]=(async()=>{
     const it=item(id); const pb=planOf(it);
-    if(pb){if(!it.planId) saveField(id,'planId',pb.id,0); return pb.id}
+    if(pb){if(it.planId!==pb.id) saveField(id,'planId',pb.id,0); return pb.id}
     const y=today.getFullYear(); await ensureYear(y);
     const nid='b'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
     const nb={year:y,month:0,title:it.title,author:it.author,contractDate:'',brand:it.brand,genre:'',status:(statuses()[0]||{}).id||'',star:false,series:false,seriesName:'',seriesNo:'',tentative:false,memo:'',history:[],createdAt:new Date().toISOString()};
@@ -518,7 +536,7 @@ async function setPlan(id,p){
   }
   await ensureYear(p.y);
   if(pb){
-    if(!it.planId) saveField(id,'planId',pb.id,0);
+    if(it.planId!==pb.id) saveField(id,'planId',pb.id,0);
     const oy=Number(pb.year), om=Number(pb.month)||0;
     if(oy===p.y&&om===p.m) return;
     const nb=Object.assign({},pb); delete nb.id; nb.year=p.y; nb.month=p.m;
@@ -542,6 +560,14 @@ function addItem(){
   queue('i:'+id,()=>fb('/items/'+id,'PUT',data)).catch(fail);
 }
 function removeItem(id){
+  const cur=item(id); if(!cur) return; const pbx=planOf(cur);
+  if(pbx){
+    const name=cur.title||'제목 없는 원고'; materialize(id); const pid=pbx.id;
+    localSet(id,{hidden:true,planId:pid}); S.fresh=S.fresh.filter(x=>x!==id); render();
+    queue('i:'+id,()=>fb('/items/'+id,'PATCH',{hidden:true,planId:pid})).catch(fail);
+    toast(`『${name}』을(를) 원고 진행 상황에서 뺐어요. 출간 계획표에는 그대로 있어요.`,'되돌리기',()=>{localSet(id,{hidden:false}); render(); queue('i:'+id,()=>fb('/items/'+id,'PATCH',{hidden:false})).catch(fail); toast('되돌렸어요.')});
+    return;
+  }
   const it=(S.tree.items||{})[id]; if(!it) return;
   const snap=clone(it); const name=it.title||'제목 없는 원고';
   delete S.tree.items[id]; S.fresh=S.fresh.filter(x=>x!==id);
