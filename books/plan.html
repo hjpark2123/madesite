@@ -414,7 +414,7 @@ function renderSummary(){
   const und=sumW(bs.filter(b=>!b.month||b.tentative));
   const done=sumW(bs.filter(b=>{const s=statusById(b.status); return s&&/출간|완료/.test(s.name)}));
   const per=BRANDS.map(b=>`<span><span class="sw" style="background:var(--${b.id}-solid)"></span>${b.name} <b>${sumW(bs.filter(x=>x.brand===b.id))}</b></span>`).join('');
-  $('#summary').innerHTML = S.mode==='loading'?'':`<span>총 <b>${total}</b>권</span><span>★ 주력 <b>${stars}</b></span><span>시리즈 <b>${ser}</b></span><span>출간 완료 <b>${done}</b></span>${und?`<button type="button" class="link-btn" id="sum-und">일정 미정 <b>${und}</b></button>`:''}${per}`;
+  $('#summary').innerHTML = S.mode==='loading'?'':`<span>총 <b>${total}</b>권</span><span>★ 주력 <b>${stars}</b></span><span>시리즈 <b>${ser}</b></span>${und?`<button type="button" class="link-btn" id="sum-und">일정 미정 <b>${und}</b></button>`:''}${per}`;
 }
 function cardHTML(b){
   const br=BRAND_BY_ID[b.brand]; const st=statusById(b.status); const [bg,fg]=statusTone(st,statusIdx(b.status));
@@ -707,6 +707,7 @@ function syncFromTree(){
 }
 function boot(){
   bind(); render();
+  window.addEventListener('message',e=>{const d=e.data; if(!d||d.type!=='plan-year') return; const y=Number(d.y); if(S.settings.years.includes(y)&&S.year!==y){S.year=y; S.month=0; render()}});
   let es;
   try{es=new EventSource(FB+'.json')}catch(e){es=null}
   if(!es){$('#banner').innerHTML='<div class="banner">이 브라우저에서는 실시간 연결을 쓸 수 없어요.</div>'; return}
