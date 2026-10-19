@@ -189,10 +189,25 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 .ev.dd{background:var(--dd-bg);border-color:var(--dd-line);color:var(--dd-ink)}
 .ev.bj{background:var(--bj-bg);border-color:var(--bj-line);color:var(--bj-ink)}
 .ev:hover{filter:brightness(.97);border-color:currentColor}
+.ev.sel{box-shadow:0 0 0 2px var(--focus)}
+.detail{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;display:flex;flex-direction:column;gap:14px;scroll-margin-top:16px}
+.dt-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 16px;flex-wrap:wrap}
+.dt-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.dt-title h3{margin:0;font-family:var(--font-display);font-size:20px;line-height:1.3}
+.dt-actions{display:flex;gap:6px}
+.dt-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px 20px;border-top:1px solid var(--line);padding-top:14px}
+.dt-grid>div{min-width:0;grid-column:span 2}
+.dt-grid>.wide{grid-column:span 3}
+.dt-k{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px}
+.dt-k.warn{color:var(--warn-ink)}
+.dt-v{white-space:pre-line;overflow-wrap:anywhere}
+.dt-v .dd{color:var(--focus);font-weight:600;font-size:12.5px;margin-left:6px}
+@media (max-width:760px){.dt-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dt-grid>div{grid-column:span 1}.dt-grid>.wide{grid-column:1/-1}}
 @media (max-width:640px){
   .day{min-height:64px;padding:3px}
   .ev{padding:2px 4px;font-size:10.5px}
   .ev .w{display:none}
+  .ev .t{white-space:normal;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .dn{font-size:11.5px;width:20px;height:20px}
 }
 .agenda{margin-top:18px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
@@ -289,11 +304,10 @@ dialog::backdrop{background:rgba(20,18,28,.4)}
         <span><i style="background:var(--hj-solid)"></i>혜지원</span>
         <span><i style="background:var(--dd-solid)"></i>다정다감</span>
         <span><i style="background:var(--bj-solid)"></i>북장단</span>
-        <span><i style="background:var(--warn-ink);border-radius:50%"></i>특별 주의사항 있음</span>
-        <span><b style="color:var(--pc-ink);font-size:11px">PC</b>PC교정 진행중</span>
       </div>
     </div>
     <div class="cal" id="cal"></div>
+    <div class="detail" id="cal-detail" hidden></div>
     <div class="agenda">
       <div class="panel" id="ag-pc"></div>
       <div class="panel" id="ag-rest"></div>
@@ -314,7 +328,7 @@ const WD=['일','월','화','수','목','금','토'];
 const DEL_ICON='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.8 6.5v4.5M9.2 6.5v4.5"/></svg>';
 
 const today=new Date(); today.setHours(0,0,0,0);
-const S={tree:{},mode:'loading',tab:'table',brand:'',q:'',sort:'desc',fresh:[],cal:{y:today.getFullYear(),m:today.getMonth()}};
+const S={tree:{},mode:'loading',tab:'table',brand:'',q:'',sort:'desc',fresh:[],sel:'',cal:{y:today.getFullYear(),m:today.getMonth()}};
 try{const t=localStorage.getItem('ms-tab'); if(t==='cal') S.tab='cal'; const s=localStorage.getItem('ms-sort'); if(['desc','asc','order'].includes(s)) S.sort=s;}catch(e){}
 if(location.hash==='#calendar') S.tab='cal';
 
@@ -494,8 +508,9 @@ function renderCal(){
   const pcs=all.filter(it=>it.pc).sort(ord), rest=all.filter(it=>!it.pc).sort(ord);
   $('#ag-pc').innerHTML=`<h2 class="ag-pc-title">PC교정 진행중 <b>${pcs.length}</b>권</h2>`+(pcs.length?pcs.map(agHTML).join(''):'<p class="muted">진행 상황에 ‘PC교정 진행중’이라고 적으면 여기에 모여요.</p>');
   $('#ag-rest').innerHTML=`<h2>그 외 <b>${rest.length}</b>권</h2>`+(rest.length?rest.map(agHTML).join(''):'<p class="muted">모든 원고가 PC교정 진행중이에요.</p>');
+  renderDetail();
 }
-function evHTML(it){return `<button type="button" class="ev ${it.brand||''}" data-open="${it.id}" title="${esc((it.title||'제목 없음')+(it.author?' · '+it.author:''))}">${it.pc?'<span class="pc">PC</span>':''}<span class="t">${esc(it.title||'제목 없음')}</span>${it.caution.trim()?'<span class="w" aria-label="특별 주의사항 있음"></span>':''}</button>`}
+function evHTML(it){return `<button type="button" class="ev ${it.brand||''} ${S.sel===it.id?'sel':''}" data-open="${it.id}" title="${esc(it.title||'제목 없음')}"><span class="t">${esc(it.title||'제목 없음')}</span></button>`}
 function agHTML(it){
   const past=it.date?toDate(it.date)<today:false;
   return `<button type="button" class="ag-item" data-open="${it.id}">
@@ -507,20 +522,27 @@ function agHTML(it){
     </span></button>`;
 }
 function openDetail(id){
-  const it=item(id); if(!it) return;
-  $('#dlg-in').innerHTML=`<div class="dlg-body">
-    <div><span class="pill ${it.brand||''}">${BN[it.brand]||'브랜드 미정'}</span></div>
-    <h3>${esc(it.title||'제목 없음')}</h3>
-    <dl class="kv">
-      <dt>저자</dt><dd>${esc(it.author)||'<span class="muted">—</span>'}</dd>
-      <dt>탈고일</dt><dd>${it.date?`${short(it.date)}`:'<span class="muted">미정</span>'}</dd>
-      <dt>진행 상황</dt><dd>${it.pc?'<span class="pcbadge" style="margin:0 0 4px;padding-right:7px">PC교정 진행중</span>\n':''}${esc(it.progress)||(it.pc?'':'<span class="muted">—</span>')}</dd>
-      <dt style="color:var(--warn-ink)">특별 주의사항</dt><dd>${it.caution.trim()?`<span class="ag-warn" style="display:inline-block">${esc(it.caution)}</span>`:'<span class="muted">—</span>'}</dd>
-    </dl></div>
-    <div class="dlg-foot"><button type="button" class="btn sm" id="dlg-close">닫기</button><button type="button" class="btn sm primary" id="dlg-edit">표에서 고치기</button></div>`;
-  const d=$('#dlg'); d.showModal();
-  $('#dlg-close').onclick=()=>d.close();
-  $('#dlg-edit').onclick=()=>{d.close(); jumpTo(id)};
+  S.sel=id; renderCal();
+  const d=$('#cal-detail'); if(!d.hidden) d.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function renderDetail(){
+  const d=$('#cal-detail'); const it=S.sel?item(S.sel):null;
+  if(!it){d.hidden=true; d.innerHTML=''; return}
+  const dm=it.date?dmeta(it.date):'';
+  d.innerHTML=`<div class="dt-head">
+      <div class="dt-title"><span class="pill ${it.brand||''}">${BN[it.brand]||'브랜드 미정'}</span><h3>${esc(it.title||'제목 없음')}</h3></div>
+      <div class="dt-actions"><button type="button" class="btn sm primary" id="dt-edit">표에서 고치기</button><button type="button" class="btn sm" id="dt-close">닫기</button></div>
+    </div>
+    <div class="dt-grid">
+      <div><div class="dt-k">저자</div><div class="dt-v">${esc(it.author)||'<span class="muted">—</span>'}</div></div>
+      <div><div class="dt-k">탈고일</div><div class="dt-v">${it.date?short(it.date)+(dm?`<span class="dd">${dm.replace(/<[^>]+>/g,'')}</span>`:''):'<span class="muted">미정</span>'}</div></div>
+      <div><div class="dt-k">진행 단계</div><div class="dt-v">${it.pc?'<span class="pcbadge" style="margin:0;padding-right:7px">PC교정 진행중</span>':'<span class="muted">—</span>'}</div></div>
+      <div class="wide"><div class="dt-k">진행 상황</div><div class="dt-v">${esc(it.progress)||'<span class="muted">—</span>'}</div></div>
+      <div class="wide"><div class="dt-k warn">특별 주의사항</div><div class="dt-v">${it.caution.trim()?`<span class="ag-warn" style="display:inline-block">${esc(it.caution)}</span>`:'<span class="muted">—</span>'}</div></div>
+    </div>`;
+  d.hidden=false;
+  $('#dt-close').onclick=()=>{S.sel=''; renderCal()};
+  $('#dt-edit').onclick=()=>jumpTo(it.id);
 }
 function jumpTo(id){
   S.brand=''; S.q=''; $('#q').value=''; setTab('table'); render();
