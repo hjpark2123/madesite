@@ -190,6 +190,17 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 .ev.bj{background:var(--bj-bg);border-color:var(--bj-line);color:var(--bj-ink)}
 .ev:hover{filter:brightness(.97);border-color:currentColor}
 .ev.sel{box-shadow:0 0 0 2px var(--focus)}
+.ag-list{display:flex;flex-direction:column}
+.ag-row{position:relative;border-top:1px solid var(--line)}
+.ag-row:first-child{border-top:0}
+.ag-t{width:100%;text-align:left;background:none;border:0;padding:9px 6px;font-weight:600;border-radius:6px;display:block;color:var(--ink)}
+.ag-t:hover{background:var(--surface-2)}
+.ag-t[aria-expanded="true"]{color:var(--focus)}
+.pop{position:absolute;left:0;right:0;top:100%;z-index:20;background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:0 12px 32px rgba(20,18,28,.18);padding:14px 16px;display:flex;flex-direction:column;gap:12px;margin-top:2px}
+.pop-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.pop .dt-grid{grid-template-columns:repeat(2,minmax(0,1fr));border-top:0;padding-top:0}
+.pop .dt-grid>div{grid-column:span 1}
+.pop .dt-grid>.wide{grid-column:1/-1}
 .detail{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;display:flex;flex-direction:column;gap:14px;scroll-margin-top:16px}
 .dt-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 16px;flex-wrap:wrap}
 .dt-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
@@ -328,7 +339,7 @@ const WD=['일','월','화','수','목','금','토'];
 const DEL_ICON='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.8 6.5v4.5M9.2 6.5v4.5"/></svg>';
 
 const today=new Date(); today.setHours(0,0,0,0);
-const S={tree:{},mode:'loading',tab:'table',brand:'',q:'',sort:'desc',fresh:[],sel:'',cal:{y:today.getFullYear(),m:today.getMonth()}};
+const S={tree:{},mode:'loading',tab:'table',brand:'',q:'',sort:'desc',fresh:[],sel:'',pop:'',cal:{y:today.getFullYear(),m:today.getMonth()}};
 try{const t=localStorage.getItem('ms-tab'); if(t==='cal') S.tab='cal'; const s=localStorage.getItem('ms-sort'); if(['desc','asc','order'].includes(s)) S.sort=s;}catch(e){}
 if(location.hash==='#calendar') S.tab='cal';
 
@@ -506,24 +517,28 @@ function renderCal(){
   $('#cal').innerHTML=h+'</div>';
   const ord=(a,b)=>{if(a.date&&!b.date) return -1; if(!a.date&&b.date) return 1; if(a.date!==b.date) return b.date.localeCompare(a.date); return (a.order||0)-(b.order||0)};
   const pcs=all.filter(it=>it.pc).sort(ord), rest=all.filter(it=>!it.pc).sort(ord);
-  $('#ag-pc').innerHTML=`<h2 class="ag-pc-title">PC교정 진행중 <b>${pcs.length}</b>권</h2>`+(pcs.length?pcs.map(agHTML).join(''):'<p class="muted">진행 상황에 ‘PC교정 진행중’이라고 적으면 여기에 모여요.</p>');
-  $('#ag-rest').innerHTML=`<h2>그 외 <b>${rest.length}</b>권</h2>`+(rest.length?rest.map(agHTML).join(''):'<p class="muted">모든 원고가 PC교정 진행중이에요.</p>');
+  $('#ag-pc').innerHTML=`<h2 class="ag-pc-title">PC교정 진행중 <b>${pcs.length}</b>권</h2>`+(pcs.length?'<div class="ag-list">'+pcs.map(agHTML).join('')+'</div>':'<p class="muted">진행 상황에 ‘PC교정 진행중’이라고 적으면 여기에 모여요.</p>');
+  $('#ag-rest').innerHTML=`<h2>그 외 <b>${rest.length}</b>권</h2>`+(rest.length?'<div class="ag-list">'+rest.map(agHTML).join('')+'</div>':'<p class="muted">모든 원고가 PC교정 진행중이에요.</p>');
   renderDetail();
 }
 function evHTML(it){return `<button type="button" class="ev ${it.brand||''} ${S.sel===it.id?'sel':''}" data-open="${it.id}" title="${esc(it.title||'제목 없음')}"><span class="t">${esc(it.title||'제목 없음')}</span></button>`}
 function agHTML(it){
-  const past=it.date?toDate(it.date)<today:false;
-  return `<button type="button" class="ag-item" data-open="${it.id}">
-    <span class="ag-date ${it.date?(past?'past':''):'none'}">${it.date?short(it.date):'미정'}</span>
-    <span class="ag-main">
-      <span class="ag-line"><span class="pill ${it.brand||''}">${BN[it.brand]||'미정'}</span><span class="ag-title">${esc(it.title||'제목 없음')}</span><span class="ag-author">${esc(it.author)}</span></span>
-      ${it.progress.trim()?`<span class="ag-note">${esc(it.progress)}</span>`:''}
-      ${it.caution.trim()?`<span class="ag-warn">주의 · ${esc(it.caution)}</span>`:''}
-    </span></button>`;
+  const open=S.pop===it.id;
+  return `<div class="ag-row"><button type="button" class="ag-t" data-pop="${it.id}" aria-expanded="${open}">${esc(it.title||'제목 없음')}</button>${open?`<div class="pop" role="dialog" aria-label="${esc(it.title||'제목 없음')}"><div class="pop-head"><span class="pill ${it.brand||''}">${BN[it.brand]||'브랜드 미정'}</span><span class="dt-actions"><button type="button" class="btn sm primary" data-jump="${it.id}">표에서 고치기</button><button type="button" class="btn sm" data-popclose>닫기</button></span></div>${detailGrid(it)}</div>`:''}</div>`;
 }
 function openDetail(id){
   S.sel=id; renderCal();
   const d=$('#cal-detail'); if(!d.hidden) d.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function detailGrid(it){
+  const dm=it.date?dmeta(it.date):'';
+  return `<div class="dt-grid">
+      <div><div class="dt-k">저자</div><div class="dt-v">${esc(it.author)||'<span class="muted">—</span>'}</div></div>
+      <div><div class="dt-k">탈고일</div><div class="dt-v">${it.date?short(it.date)+(dm?`<span class="dd">${dm.replace(/<[^>]+>/g,'')}</span>`:''):'<span class="muted">미정</span>'}</div></div>
+      <div><div class="dt-k">진행 단계</div><div class="dt-v">${it.pc?'<span class="pcbadge" style="margin:0;padding-right:7px">PC교정 진행중</span>':'<span class="muted">—</span>'}</div></div>
+      <div class="wide"><div class="dt-k">진행 상황</div><div class="dt-v">${esc(it.progress)||'<span class="muted">—</span>'}</div></div>
+      <div class="wide"><div class="dt-k warn">특별 주의사항</div><div class="dt-v">${it.caution.trim()?`<span class="ag-warn" style="display:inline-block">${esc(it.caution)}</span>`:'<span class="muted">—</span>'}</div></div>
+    </div>`;
 }
 function renderDetail(){
   const d=$('#cal-detail'); const it=S.sel?item(S.sel):null;
@@ -533,13 +548,7 @@ function renderDetail(){
       <div class="dt-title"><span class="pill ${it.brand||''}">${BN[it.brand]||'브랜드 미정'}</span><h3>${esc(it.title||'제목 없음')}</h3></div>
       <div class="dt-actions"><button type="button" class="btn sm primary" id="dt-edit">표에서 고치기</button><button type="button" class="btn sm" id="dt-close">닫기</button></div>
     </div>
-    <div class="dt-grid">
-      <div><div class="dt-k">저자</div><div class="dt-v">${esc(it.author)||'<span class="muted">—</span>'}</div></div>
-      <div><div class="dt-k">탈고일</div><div class="dt-v">${it.date?short(it.date)+(dm?`<span class="dd">${dm.replace(/<[^>]+>/g,'')}</span>`:''):'<span class="muted">미정</span>'}</div></div>
-      <div><div class="dt-k">진행 단계</div><div class="dt-v">${it.pc?'<span class="pcbadge" style="margin:0;padding-right:7px">PC교정 진행중</span>':'<span class="muted">—</span>'}</div></div>
-      <div class="wide"><div class="dt-k">진행 상황</div><div class="dt-v">${esc(it.progress)||'<span class="muted">—</span>'}</div></div>
-      <div class="wide"><div class="dt-k warn">특별 주의사항</div><div class="dt-v">${it.caution.trim()?`<span class="ag-warn" style="display:inline-block">${esc(it.caution)}</span>`:'<span class="muted">—</span>'}</div></div>
-    </div>`;
+    ${detailGrid(it)}`;
   d.hidden=false;
   $('#dt-close').onclick=()=>{S.sel=''; renderCal()};
   $('#dt-edit').onclick=()=>jumpTo(it.id);
@@ -583,7 +592,15 @@ function bind(){
   $('#cal-prev').onclick=()=>{const d=new Date(S.cal.y,S.cal.m-1,1); S.cal={y:d.getFullYear(),m:d.getMonth()}; renderCal()};
   $('#cal-next').onclick=()=>{const d=new Date(S.cal.y,S.cal.m+1,1); S.cal={y:d.getFullYear(),m:d.getMonth()}; renderCal()};
   $('#cal-today').onclick=()=>{S.cal={y:today.getFullYear(),m:today.getMonth()}; renderCal()};
-  $('#view-cal').addEventListener('click',e=>{const b=e.target.closest('[data-open]'); if(b) openDetail(b.dataset.open)});
+  $('#view-cal').addEventListener('click',e=>{
+    const pb=e.target.closest('[data-pop]'); if(pb){const id=pb.dataset.pop; S.pop=S.pop===id?'':id; renderCal(); const pp=$('.pop'); if(pp) pp.scrollIntoView({block:'nearest',behavior:'smooth'}); return}
+    const jb=e.target.closest('[data-jump]'); if(jb){S.pop=''; jumpTo(jb.dataset.jump); return}
+    if(e.target.closest('[data-popclose]')){S.pop=''; renderCal(); return}
+    if(e.target.closest('.pop')) return;
+    const b=e.target.closest('[data-open]'); if(b){S.pop=''; openDetail(b.dataset.open); return}
+  });
+  document.addEventListener('click',e=>{if(S.pop&&!e.target.closest('.ag-row')){S.pop=''; if(S.tab==='cal') renderCal()}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.pop){S.pop=''; renderCal()}});
   $('#dlg').addEventListener('click',e=>{if(e.target===e.currentTarget) e.currentTarget.close()});
 
   const box=$('#rows');
