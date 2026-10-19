@@ -269,8 +269,23 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
   .ev .t{white-space:normal;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .dn{font-size:11.5px;width:20px;height:20px}
 }
-.agenda{margin-top:18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-@media (max-width:860px){.agenda{grid-template-columns:minmax(0,1fr)}}
+.sb-head{display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap;margin-bottom:12px}
+.sb-head p{margin:0;font-size:13.5px}
+.sboard{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(170px,1fr);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow-x:auto;align-items:stretch}
+.sb-col{border-right:1px solid var(--line);min-width:0;display:flex;flex-direction:column}
+.sb-col:last-child{border-right:0}
+.sb-col h2{margin:0;padding:11px 12px;font-size:13.5px;font-weight:700;background:var(--surface-2);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:6px;position:sticky;top:0}
+.sb-col h2 b{font-variant-numeric:tabular-nums}
+.sb-col.pc h2{color:var(--pc-ink)}
+.sb-col.none h2{color:var(--muted)}
+.sb-col .ag-list{padding:4px 6px 8px}
+.sb-col .empty-c{color:var(--faint);font-size:13px;padding:12px}
+.sb-col .ag-t{display:flex;align-items:flex-start;gap:7px;font-size:14px;line-height:1.45}
+.sb-col .ag-t .dot{width:7px;height:7px;border-radius:50%;flex:none;margin-top:7px;background:var(--line-strong)}
+.sb-col .ag-t .dot.hj{background:var(--hj-solid)}.sb-col .ag-t .dot.dd{background:var(--dd-solid)}.sb-col .ag-t .dot.bj{background:var(--bj-solid)}
+.sb-col .pop{position:static;margin:2px 0 8px;box-shadow:0 6px 18px rgba(20,18,28,.12)}
+@media (min-width:761px){.sb-col .pop{padding:12px;gap:10px}.sb-col .pop .dt-grid{grid-template-columns:minmax(0,1fr);gap:9px}.sb-col .pop .dt-grid>div,.sb-col .pop .dt-grid>.wide{grid-column:auto}.sb-col .pop .pop-head .dt-actions{width:100%;flex-wrap:wrap}.sb-col .pop .pop-head .btn{flex:1 1 auto;padding-inline:8px;white-space:nowrap}}
+@media (max-width:760px){.sboard{grid-auto-flow:row;grid-auto-columns:auto;overflow:visible}.sb-col{border-right:0;border-bottom:1px solid var(--line)}.sb-col:last-child{border-bottom:0}}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
 .panel h2{font-size:15px;margin:0 0 10px;font-weight:700}
 .panel h2 b{color:var(--focus)}
@@ -330,7 +345,7 @@ dialog::backdrop{background:rgba(20,18,28,.4)}
   <div class="bar">
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" id="tab-table" aria-selected="true" aria-controls="view-table">표</button>
-      <button class="tab" role="tab" id="tab-cal" aria-selected="false" aria-controls="view-cal">달력</button>
+      <button class="tab" role="tab" id="tab-cal" aria-selected="false" aria-controls="view-cal">진행 상태별</button>
     </div>
     <div class="tools" id="tools">
       <div class="chips" id="brand-chips"></div>
@@ -354,26 +369,14 @@ dialog::backdrop{background:rgba(20,18,28,.4)}
   </section>
 
   <section id="view-cal" role="tabpanel" hidden>
-    <div class="cal-head">
-      <div class="cal-nav">
-        <button class="icon-btn" id="cal-prev" type="button" aria-label="이전 달">‹</button>
-        <div class="cal-title" id="cal-title"></div>
-        <button class="icon-btn" id="cal-next" type="button" aria-label="다음 달">›</button>
-        <button class="btn sm" id="cal-today" type="button">오늘</button>
-      </div>
+    <div class="sb-head"><p class="muted">진행 상태별로 책 제목을 모았어요. 제목을 누르면 자세한 내용이 보여요. 진행 상태는 표 화면이나 출간 계획표에서 바꿔요.</p>
       <div class="legend">
         <span><i style="background:var(--hj-solid)"></i>혜지원</span>
         <span><i style="background:var(--dd-solid)"></i>다정다감</span>
         <span><i style="background:var(--bj-solid)"></i>북장단</span>
       </div>
     </div>
-    <div class="cal" id="cal"></div>
-    <div class="detail" id="cal-detail" hidden></div>
-    <div class="agenda">
-      <div class="panel" id="ag-w"></div>
-      <div class="panel" id="ag-pc"></div>
-      <div class="panel" id="ag-rest"></div>
-    </div>
+    <div class="sboard" id="sboard"></div>
   </section>
 </div>
 
@@ -552,6 +555,7 @@ async function ensureYear(y){
   await pfb('/settings/years','PUT',ys).catch(fail);
 }
 function putPlan(pid,nb){planBooks()[pid]=nb; render(); queue('p:'+pid,()=>pfb('/books/'+pid,'PUT',nb)).catch(fail)}
+function showPlanYear(y){try{const f=window.parent&&window.parent!==window&&window.parent.document.getElementById('v-plan'); if(f&&f.contentWindow) f.contentWindow.postMessage({type:'plan-year',y},'*')}catch(e){}}
 async function setPlan(id,p){
   if(!S.planReady){toast('출간 계획표를 불러오는 중이에요. 잠시 후 다시 해 주세요.'); return}
   const it=item(id); if(!it) return; const pb=planOf(it); const now=new Date().toISOString();
@@ -566,12 +570,12 @@ async function setPlan(id,p){
     if(oy===p.y&&om===p.m) return;
     const nb=Object.assign({},pb); delete nb.id; nb.year=p.y; nb.month=p.m;
     nb.history=[...asArr(pb.history),{from:{y:oy,m:om},to:{y:p.y,m:p.m},at:now}].slice(-20);
-    putPlan(pb.id,nb); toast(`출간 계획표에 ${p.y}년 ${p.m}월로 반영했어요.`);
+    putPlan(pb.id,nb); showPlanYear(p.y); toast(`출간 계획표 ${p.y}년 ${p.m}월에 반영했어요.`);
   } else {
     const st=asArr((S.proot.settings||{}).statuses);
     const nid='b'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
     const nb={year:p.y,month:p.m,title:it.title,author:it.author,contractDate:'',brand:it.brand,genre:'',status:(st[0]&&st[0].id)||'s1',star:false,series:false,seriesName:'',seriesNo:'',tentative:false,memo:'',history:[],createdAt:now};
-    saveField(id,'planId',nid,0); putPlan(nid,nb); toast(`출간 계획표 ${p.y}년 ${p.m}월에 새로 넣었어요.`);
+    saveField(id,'planId',nid,0); putPlan(nid,nb); showPlanYear(p.y); toast(`출간 계획표 ${p.y}년 ${p.m}월에 새로 넣었어요.`);
   }
 }
 function addItem(){
@@ -693,35 +697,21 @@ function renderTable(){
 
 /* ---------- calendar ---------- */
 function renderCal(){
-  const {y,m}=S.cal;
-  $('#cal-title').textContent=`${y}년 ${m+1}월`;
-  const all=items();
-  const byDate={}; all.forEach(it=>{if(it.date)(byDate[it.date]=byDate[it.date]||[]).push(it)});
-  const first=new Date(y,m,1); const start=new Date(y,m,1-first.getDay());
-  const last=new Date(y,m+1,0); const weeks=Math.ceil((first.getDay()+last.getDate())/7);
-  let h='<div class="wk names">'+WD.map(w=>`<div>${w}</div>`).join('')+'</div><div class="wk">';
-  for(let i=0;i<weeks*7;i++){
-    const d=new Date(start); d.setDate(start.getDate()+i);
-    const iso=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    const cls=['day']; if(d.getMonth()!==m) cls.push('out'); if(d.getDay()===0) cls.push('sun'); if(d.getDay()===6) cls.push('sat'); if(+d===+today) cls.push('today');
-    const evs=(byDate[iso]||[]).sort((a,b)=>(a.order||0)-(b.order||0)).map(evHTML).join('');
-    h+=`<div class="${cls.join(' ')}"><span class="dn">${d.getDate()}</span>${evs}</div>`;
-  }
-  $('#cal').innerHTML=h+'</div>';
-  const ord=(a,b)=>{if(a.date&&!b.date) return -1; if(!a.date&&b.date) return 1; if(a.date!==b.date) return b.date.localeCompare(a.date); return (a.order||0)-(b.order||0)};
-  const wid=writingStatusId(); const stOf=it=>(planOf(it)||{}).status||'';
-  const isW=it=>!isPC(it)&&!!wid&&stOf(it)===wid;
-  const ws=all.filter(isW).sort(ord), pcs=all.filter(isPC).sort(ord), rest=all.filter(it=>!isPC(it)&&!isW(it)).sort(ord);
-  const list=a=>'<div class="ag-list">'+a.map(agHTML).join('')+'</div>';
-  $('#ag-w').innerHTML=`<h2>${esc(statusName(wid)||'원고 작성중')} <b>${ws.length}</b>권</h2>`+(ws.length?list(ws):'<p class="muted">해당하는 책이 없어요.</p>');
-  $('#ag-pc').innerHTML=`<h2 class="ag-pc-title">${esc(statusName(pcStatusId())||'PC 교정 중')} <b>${pcs.length}</b>권</h2>`+(pcs.length?list(pcs):'<p class="muted">진행 상태를 ‘PC 교정 중’으로 바꾸거나 진행 상황에 ‘PC교정 진행중’이라고 적으면 여기에 모여요.</p>');
-  $('#ag-rest').innerHTML=`<h2>그 외 <b>${rest.length}</b>권</h2>`+(rest.length?list(rest):'<p class="muted">해당하는 책이 없어요.</p>');
-  renderDetail();
+  const all=items(); const pcid=pcStatusId();
+  const stOf=it=>{if(isPC(it)&&pcid) return pcid; return (planOf(it)||{}).status||''};
+  const ko=(x,y)=>String(x||'').localeCompare(String(y||''),'ko');
+  const cols=statuses().map(x=>({id:x.id,name:x.name})).concat([{id:'',name:'진행 상태 없음'}]);
+  $('#sboard').innerHTML=cols.map(c=>{
+    const list=all.filter(it=>stOf(it)===c.id).sort((a,b)=>ko(a.title,b.title));
+    if(c.id===''&&!list.length) return '';
+    const cls=c.id&&c.id===pcid?'pc':(c.id===''?'none':'');
+    return `<section class="sb-col ${cls}"><h2><span>${esc(c.name)}</span><b>${list.length}권</b></h2>${list.length?'<div class="ag-list">'+list.map(agHTML).join('')+'</div>':'<div class="empty-c">없음</div>'}</section>`;
+  }).join('');
 }
 function evHTML(it){return `<button type="button" class="ev ${it.brand||''} ${S.sel===it.id?'sel':''}" data-open="${it.id}" title="${esc(it.title||'제목 없음')}"><span class="t">${esc(it.title||'제목 없음')}</span></button>`}
 function agHTML(it){
   const open=S.pop===it.id;
-  return `<div class="ag-row"><button type="button" class="ag-t" data-pop="${it.id}" aria-expanded="${open}">${esc(it.title||'제목 없음')}</button>${open?`<div class="pop" role="dialog" aria-label="${esc(it.title||'제목 없음')}"><div class="pop-head"><span class="pill ${it.brand||''}">${BN[it.brand]||'브랜드 미정'}</span><span class="dt-actions"><button type="button" class="btn sm primary" data-jump="${it.id}">표에서 고치기</button><button type="button" class="btn sm" data-popclose>닫기</button></span></div>${detailGrid(it)}</div>`:''}</div>`;
+  return `<div class="ag-row"><button type="button" class="ag-t" data-pop="${it.id}" aria-expanded="${open}"><span class="dot ${it.brand||''}"></span><span>${esc(it.title||'제목 없음')}</span></button>${open?`<div class="pop" role="dialog" aria-label="${esc(it.title||'제목 없음')}"><div class="pop-head"><span class="pill ${it.brand||''}">${BN[it.brand]||'브랜드 미정'}</span><span class="dt-actions"><button type="button" class="btn sm primary" data-jump="${it.id}">표에서 고치기</button><button type="button" class="btn sm" data-popclose>닫기</button></span></div>${detailGrid(it)}</div>`:''}</div>`;
 }
 function openDetail(id){
   S.sel=id; renderCal();
@@ -808,9 +798,6 @@ function bind(){
   fpop.addEventListener('click',e=>{const b=e.target.closest('[data-fst]'); if(!b) return; if(b.dataset.fst==='clear'){S.fst=[]; saveFst(); S.fresh=[]; render()} else fOpen(false)});
   document.addEventListener('click',e=>{if(!fpop.hidden&&!e.target.closest('#fst')) fOpen(false)});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!fpop.hidden){fOpen(false); fbtn.focus()}});
-  $('#cal-prev').onclick=()=>{const d=new Date(S.cal.y,S.cal.m-1,1); S.cal={y:d.getFullYear(),m:d.getMonth()}; renderCal()};
-  $('#cal-next').onclick=()=>{const d=new Date(S.cal.y,S.cal.m+1,1); S.cal={y:d.getFullYear(),m:d.getMonth()}; renderCal()};
-  $('#cal-today').onclick=()=>{S.cal={y:today.getFullYear(),m:today.getMonth()}; renderCal()};
   $('#view-cal').addEventListener('click',e=>{
     const pb=e.target.closest('[data-pop]'); if(pb){const id=pb.dataset.pop; S.pop=S.pop===id?'':id; renderCal(); const pp=$('.pop'); if(pp) pp.scrollIntoView({block:'nearest',behavior:'smooth'}); return}
     const jb=e.target.closest('[data-jump]'); if(jb){S.pop=''; jumpTo(jb.dataset.jump); return}
