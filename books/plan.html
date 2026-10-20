@@ -294,6 +294,10 @@ const DEFAULT_SETTINGS={
 const STATUS_TONES=[['#E7E4F1','#4C4760'],['#DCEBFA','#1F5B94'],['#FBE6D2','#8C4A12'],['#E0F1EA','#1D6B4A'],['#F7DCE0','#8E2635'],['#D8EFD2','#2E6B1F'],['#ECE9E2','#5E584A'],['#E3E0F8','#3E3391']];
 function statusTone(st,idx){
   if(!st) return ['var(--none-bg)','var(--muted)'];
+  if(/pc\s*교정/i.test(st.name)) return ['#DCE8FF','#1F5FD1'];
+  if(/편집\s*스탠바이/.test(st.name)) return ['#FDE1DD','#C0392B'];
+  if(/편집\s*진행|그림\s*수정/.test(st.name)) return ['#DDF4E4','#1E7A3C'];
+  if(/저자.*수정/.test(st.name)) return ['#FF8A00','#2A1300'];
   if(/출간|완료/.test(st.name)) return ['#D5EFD0','#256B1A'];
   if(/보류|중단|취소/.test(st.name)) return ['#E6E4EA','#5B5868'];
   return STATUS_TONES[idx%STATUS_TONES.length];
