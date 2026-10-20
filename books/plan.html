@@ -297,7 +297,7 @@ function statusTone(st,idx){
   if(/pc\s*교정/i.test(st.name)) return ['#DCE8FF','#1F5FD1'];
   if(/편집\s*스탠바이/.test(st.name)) return ['#FDE1DD','#C0392B'];
   if(/편집\s*진행|그림\s*수정/.test(st.name)) return ['#DDF4E4','#1E7A3C'];
-  if(/저자.*수정/.test(st.name)) return ['#FF8A00','#2A1300'];
+  if(/저자.*수정/.test(st.name)) return ['#FFEFAD','#8A6100'];
   if(/출간|완료/.test(st.name)) return ['#D5EFD0','#256B1A'];
   if(/보류|중단|취소/.test(st.name)) return ['#E6E4EA','#5B5868'];
   return STATUS_TONES[idx%STATUS_TONES.length];
