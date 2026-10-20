@@ -147,6 +147,8 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 .ssel:hover{background:var(--surface-2)}
 .ssel:focus{border-color:var(--focus);outline:none}
 .ssel.pc{color:var(--pc-ink);font-weight:700}
+.ssel.red{color:var(--danger);font-weight:700}
+.ssel.purple{color:var(--bj-ink);font-weight:700}
 .ssel.blank:not(:focus){color:transparent}
 .ssel option{color:var(--ink);background:var(--surface)}
 .serf{display:flex;gap:4px;align-items:center}
@@ -275,8 +277,11 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 .sb-col{border-right:1px solid var(--line);min-width:0;display:flex;flex-direction:column}
 .sb-col:last-child{border-right:0}
 .sb-col h2{margin:0;padding:11px 12px;font-size:13.5px;font-weight:700;background:var(--surface-2);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:6px;position:sticky;top:0}
-.sb-col h2 b{font-variant-numeric:tabular-nums}
-.sb-col.pc h2{color:var(--pc-ink)}
+.sb-col h2 b{font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (min-width:761px){.sb-col h2{min-height:62px;align-items:flex-start;line-height:1.45}}
+.sb-col.pc h2{color:var(--pc-ink);background:var(--pc-bg)}
+.sb-col.red h2{color:var(--danger);background:var(--danger-bg)}
+.sb-col.purple h2{color:var(--bj-ink);background:var(--bj-bg)}
 .sb-col.none h2{color:var(--muted)}
 .sb-col .ag-list{padding:4px 6px 8px}
 .sb-col .empty-c{color:var(--faint);font-size:13px;padding:12px}
@@ -507,6 +512,8 @@ const PLAN_DEFAULT_ST=[{id:'s1',name:'계약'},{id:'s2',name:'원고'},{id:'s3',
 function statuses(){const a=asArr((S.proot.settings||{}).statuses); return a.length?a:PLAN_DEFAULT_ST}
 function statusName(id){const x=statuses().find(s=>s.id===id); return x?x.name:''}
 function pcStatusId(){const x=statuses().find(s=>/pc\s*교정/i.test(s.name)); return x?x.id:''}
+function toneOf(sid){if(!sid) return ''; if(sid===pcStatusId()) return 'pc'; const n=statusName(sid); if(/편집\s*스탠바이/.test(n)) return 'red'; if(/편집\s*진행|그림\s*수정/.test(n)) return 'purple'; return ''}
+function toneSel(el){const t=toneOf(el.value); ['pc','red','purple'].forEach(c=>el.classList.toggle(c,t===c))}
 function isPC(it){const pid=pcStatusId(); const pb=planOf(it); if(pid&&pb) return pb.status===pid; return !!it.pc}
 const creating={};
 function ensurePlan(id){
@@ -686,7 +693,7 @@ function fill(r,it){
   const bdg=$('.pcbadge',r); const pc=isPC(it); bdg.hidden=!pc; if(pc) $('.t',bdg).textContent=statusName(pcid)||'PC 교정 중';
   const st=$('.ssel',r); const sts=statuses(); const sig=sts.map(x=>x.id+':'+x.name).join('|');
   if(st.dataset.sig!==sig){st.innerHTML='<option value=""></option>'+sts.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join(''); st.dataset.sig=sig}
-  if(st!==ae) st.value=pb?(pb.status||''):''; st.classList.toggle('pc',!!pcid&&st.value===pcid); st.classList.toggle('blank',!st.value);
+  if(st!==ae) st.value=pb?(pb.status||''):''; toneSel(st); st.classList.toggle('blank',!st.value);
   const star=$('.star',r); const on=!!(pb&&pb.star); star.setAttribute('aria-pressed',on); star.textContent=on?'★':'☆';
   r.querySelectorAll('.serf [data-pf]').forEach(el=>{if(el===ae) return; const v=pb?String(pb[el.dataset.pf]??''):''; if(el.value!==v) el.value=v});
   r.querySelectorAll('[data-f]').forEach(el=>{
@@ -733,7 +740,7 @@ function renderCal(){
   $('#sboard').innerHTML=cols.map(c=>{
     const list=all.filter(it=>stOf(it)===c.id).sort((a,b)=>ko(a.title,b.title));
     if(c.id===''&&!list.length) return '';
-    const cls=c.id&&c.id===pcid?'pc':(c.id===''?'none':'');
+    const cls=c.id===''?'none':toneOf(c.id);
     return `<section class="sb-col ${cls}"><h2><span>${esc(c.name)}</span><b>${list.length}권</b></h2>${list.length?'<div class="ag-list">'+list.map(agHTML).join('')+'</div>':'<div class="empty-c">없음</div>'}</section>`;
   }).join('');
 }
@@ -845,7 +852,7 @@ function bind(){
     const sb=e.target.closest('[data-star]'); if(sb){const id=sb.closest('.row').dataset.id; const pb=planOf(item(id)); planSet(id,{star:!(pb&&pb.star)},0); return}
   });
   box.addEventListener('input',e=>{const el=e.target; const pf=el.dataset.pf; if(!pf||pf==='status') return; if(pf==='seriesNo'){const v=el.value.replace(/\D/g,''); if(v!==el.value) el.value=v} const r=el.closest('.row'); const nm=$('[data-pf=seriesName]',r).value.trim(), no=$('[data-pf=seriesNo]',r).value.trim(); planSet(r.dataset.id,{[pf]:el.value,series:!!(nm||no)},600)});
-  box.addEventListener('change',e=>{const el=e.target; if(el.dataset.pf!=='status') return; el.classList.toggle('blank',!el.value); el.classList.toggle('pc',!!pcStatusId()&&el.value===pcStatusId()); planSet(el.closest('.row').dataset.id,{status:el.value},0)});
+  box.addEventListener('change',e=>{const el=e.target; if(el.dataset.pf!=='status') return; el.classList.toggle('blank',!el.value); toneSel(el); planSet(el.closest('.row').dataset.id,{status:el.value},0)});
   box.addEventListener('compositionend',e=>{const el=e.target; if(el.dataset&&el.dataset.f==='progress') checkPC(el)});
   box.addEventListener('input',e=>{
     const el=e.target; const f=el.dataset.f; if(!f) return; const id=el.closest('.row').dataset.id;
