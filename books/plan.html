@@ -448,7 +448,7 @@ function monthSection(m,list,all){
 function renderBoard(){
   const bs=yearBooks();
   let months;
-  if(S.month>0) months=[S.month]; else { months=[1,2,3,4,5,6,7,8,9,10,11,12]; if(S.undecided && bs.some(b=>!b.month)) months.unshift(0) }
+  if(S.month>0) months=[S.month]; else { months=[1,2,3,4,5,6,7,8,9,10,11,12]; if(bs.some(b=>!b.month)) months.unshift(0) }
   const html=months.map(m=>{const all=bs.filter(b=>(b.month||0)===m).sort(cardSort); return monthSection(m,all.filter(matches),all)}).join('');
   $('#main').innerHTML=`<div class="board ${months.length===1?'single':''}">${html}</div>`;
 }
@@ -709,7 +709,7 @@ function syncFromTree(){
   for(const id in bs){const v=bs[id]; if(!v) continue; const b=Object.assign({author:'',contractDate:'',brand:'',genre:'',status:'',star:false,series:false,seriesName:'',seriesNo:'',tentative:false,memo:'',month:0},clone(v),{id}); b.history=asArr(b.history); b.year=Number(b.year); b.month=Number(b.month)||0; m.set(id,b)}
   S.books=m;
   for(const b of m.values()){if(b.year>=2000&&b.year<2100&&!S.settings.years.includes(b.year)) S.settings.years.push(b.year)}
-  if(S.wantYear&&S.settings.years.includes(S.wantYear)){S.year=S.wantYear; S.month=0; S.wantYear=null}
+  if(S.wantYear&&S.settings.years.includes(S.wantYear)){S.year=S.wantYear; S.month=0; S.wantYear=null; S.yearLocked=true}
 }
 function boot(){
   bind(); render();
@@ -722,7 +722,7 @@ function boot(){
     let p; try{p=JSON.parse(ev.data)}catch(e){return}
     if(!p) return;
     applyEvent(p.path||'/',p.data,merge); syncFromTree();
-    if(S.mode==='loading'){S.mode='live'; clearTimeout(slow); $('#banner').innerHTML=''}
+    if(S.mode==='loading'){S.mode='live'; clearTimeout(slow); $('#banner').innerHTML=''; if(!S.yearLocked) S.year=pickYear()}
     render();
     const sd=$('#dlg-settings'); const ae=document.activeElement;
     if(sd.open && !(ae && sd.contains(ae) && ae.tagName==='INPUT')) openSettings();
