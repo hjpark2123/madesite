@@ -19,6 +19,7 @@
   --hj-bg:#FEF7FA; --hj-line:#F5D6E3; --hj-ink:#B02C63; --hj-solid:#F07AAB;
   --dd-bg:#FFFCEC; --dd-line:#F1E3A6; --dd-ink:#7E6100; --dd-solid:#F5CF2E;
   --bj-bg:#F9F6FE; --bj-line:#DFD3F4; --bj-ink:#5F3AAE; --bj-solid:#9A74E0;
+  --grn-ink:#1E7A3C; --grn-bg:#E3F6E8; --org-ink:#E65100; --org-solid:#FF8A00; --org-on:#2A1300;
   --none-bg:#F1F0F4; --none-line:#D4D1DD; --none-ink:#5E5A6B; --none-solid:#BDB9C8;
   --shadow:0 1px 2px rgba(33,31,43,.06),0 4px 14px rgba(33,31,43,.05);
   --font-ui:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
@@ -33,7 +34,7 @@
     --today:#A98BF0; --sun:#F07A6A; --sat:#8EA9EA; --pc-ink:#8FB4FF; --pc-bg:#1C2436; --pc-line:#34466B; --star:#3DEB78;
     --hj-bg:#282026; --hj-line:#4E3643; --hj-ink:#F6A8C8; --hj-solid:#E0679A;
     --dd-bg:#27251D; --dd-line:#4C4630; --dd-ink:#F3D768; --dd-solid:#D6B226;
-    --bj-bg:#24212E; --bj-line:#443B5C; --bj-ink:#C8B2F5; --bj-solid:#8E6AD8;
+    --bj-bg:#24212E; --bj-line:#443B5C; --bj-ink:#C8B2F5; --bj-solid:#8E6AD8; --grn-ink:#74D892; --grn-bg:#1B2C21; --org-ink:#FF9B3D;
     --none-bg:#26252E; --none-line:#44414F; --none-ink:#B9B5C6; --none-solid:#6A6679;
     --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark;
   }
@@ -46,7 +47,7 @@
   --today:#A98BF0; --sun:#F07A6A; --sat:#8EA9EA; --pc-ink:#8FB4FF; --pc-bg:#1C2436; --pc-line:#34466B; --star:#3DEB78;
   --hj-bg:#282026; --hj-line:#4E3643; --hj-ink:#F6A8C8; --hj-solid:#E0679A;
   --dd-bg:#27251D; --dd-line:#4C4630; --dd-ink:#F3D768; --dd-solid:#D6B226;
-  --bj-bg:#24212E; --bj-line:#443B5C; --bj-ink:#C8B2F5; --bj-solid:#8E6AD8;
+  --bj-bg:#24212E; --bj-line:#443B5C; --bj-ink:#C8B2F5; --bj-solid:#8E6AD8; --grn-ink:#74D892; --grn-bg:#1B2C21; --org-ink:#FF9B3D;
   --none-bg:#26252E; --none-line:#44414F; --none-ink:#B9B5C6; --none-solid:#6A6679;
   --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark;
 }
@@ -148,7 +149,8 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 .ssel:focus{border-color:var(--focus);outline:none}
 .ssel.pc{color:var(--pc-ink);font-weight:700}
 .ssel.red{color:var(--danger);font-weight:700}
-.ssel.purple{color:var(--bj-ink);font-weight:700}
+.ssel.green{color:var(--grn-ink);font-weight:700}
+.ssel.orange{color:var(--org-ink);font-weight:700}
 .ssel.blank:not(:focus){color:transparent}
 .ssel option{color:var(--ink);background:var(--surface)}
 .serf{display:flex;gap:4px;align-items:center}
@@ -281,7 +283,8 @@ textarea.f{field-sizing:content;min-height:34px;overflow:hidden}
 @media (min-width:761px){.sb-col h2{min-height:62px;align-items:flex-start;line-height:1.45}}
 .sb-col.pc h2{color:var(--pc-ink);background:var(--pc-bg)}
 .sb-col.red h2{color:var(--danger);background:var(--danger-bg)}
-.sb-col.purple h2{color:var(--bj-ink);background:var(--bj-bg)}
+.sb-col.green h2{color:var(--grn-ink);background:var(--grn-bg)}
+.sb-col.orange h2{color:var(--org-on);background:var(--org-solid)}
 .sb-col.none h2{color:var(--muted)}
 .sb-col .ag-list{padding:4px 6px 8px}
 .sb-col .empty-c{color:var(--faint);font-size:13px;padding:12px}
@@ -512,8 +515,8 @@ const PLAN_DEFAULT_ST=[{id:'s1',name:'계약'},{id:'s2',name:'원고'},{id:'s3',
 function statuses(){const a=asArr((S.proot.settings||{}).statuses); return a.length?a:PLAN_DEFAULT_ST}
 function statusName(id){const x=statuses().find(s=>s.id===id); return x?x.name:''}
 function pcStatusId(){const x=statuses().find(s=>/pc\s*교정/i.test(s.name)); return x?x.id:''}
-function toneOf(sid){if(!sid) return ''; if(sid===pcStatusId()) return 'pc'; const n=statusName(sid); if(/편집\s*스탠바이/.test(n)) return 'red'; if(/편집\s*진행|그림\s*수정/.test(n)) return 'purple'; return ''}
-function toneSel(el){const t=toneOf(el.value); ['pc','red','purple'].forEach(c=>el.classList.toggle(c,t===c))}
+function toneOf(sid){if(!sid) return ''; if(sid===pcStatusId()) return 'pc'; const n=statusName(sid); if(/편집\s*스탠바이/.test(n)) return 'red'; if(/편집\s*진행|그림\s*수정/.test(n)) return 'green'; if(/저자.*수정/.test(n)) return 'orange'; return ''}
+function toneSel(el){const t=toneOf(el.value); ['pc','red','green','orange'].forEach(c=>el.classList.toggle(c,t===c))}
 function isPC(it){const pid=pcStatusId(); const pb=planOf(it); if(pid&&pb) return pb.status===pid; return !!it.pc}
 const creating={};
 function ensurePlan(id){
