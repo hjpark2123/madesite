@@ -891,6 +891,7 @@ function bind(){
       setPlanMulti(id,L.items);
     } else if(f!=='brand'){
       const k=id+':'+f; if(timers[k]){clearTimeout(timers[k]); delete timers[k]; saveField(id,f,el.value,0)}
+      if(f==='title'&&el.value.trim()&&S.planReady){const cur=item(id); if(cur&&!planOf(cur)) ensurePlan(id).then(()=>showPlanYear(today.getFullYear()))}
     }
     setTimeout(()=>{if(!box.contains(document.activeElement)){const before=[...box.children].map(x=>x.dataset.id).join(','); renderTable(); const after=[...box.children].map(x=>x.dataset.id).join(','); if(before!==after){const row=rowEls.get(id); if(row){row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash')}}}},0);
   });
